@@ -69,12 +69,26 @@
 
   /* ---------- custom equation panel ---------- */
   #eqPanel {
-    position: fixed; top: 100px; left: 10px; right: 10px; z-index: 18;
-    background: rgba(15,23,42,.92); border: 1px solid rgba(255,255,255,.15);
+    position: fixed; left: 10px; right: 10px; z-index: 19;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    max-height: 58vh; overflow-y: auto;
+    background: rgba(15,23,42,.96); border: 1px solid rgba(255,255,255,.15);
     border-radius: 14px; padding: 12px 14px; color: #e5e7eb;
+    box-shadow: 0 6px 24px rgba(0,0,0,.5);
     display: none;
   }
   #eqPanel.open { display: block; }
+  #eqPanelHead {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  #eqPanelHead strong { font-size: 13px; color: #93c5fd; font-weight: 600; }
+  #eqPanelClose {
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3);
+    color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 14px;
+    line-height: 1; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
   #eqPanel label { font-size: 11.5px; color: #93c5fd; display:block; margin-bottom:3px; }
   #eqPanel input[type=text] {
     width: 100%; background: #1e293b; border: 1px solid #334155; color: #fef3c7;
@@ -196,7 +210,11 @@
 
 <!-- ================= CUSTOM EQUATION PANEL ================= -->
 <div id="eqPanel">
-  <label>สมการพื้นผิว f(x, y, z) = 0 หรือ LHS = RHS</label>
+  <div id="eqPanelHead">
+    <strong>📐 สมการพื้นผิว</strong>
+    <button id="eqPanelClose" title="ปิด">✕</button>
+  </div>
+  <label>f(x, y, z) = 0 หรือ LHS = RHS</label>
   <input type="text" id="eqInput" value="x^2 + y^2 + z^2 - 9" autocomplete="off" autocapitalize="off" spellcheck="false" />
   <div id="eqRow">
     <div>
@@ -249,7 +267,7 @@ const SHAPES = {
   cube: {
     th: "ลูกบาศก์", color: "#7EA6D8",
     build: () => `
-      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; opacity:0.9; transparent:true; shader: flat; side: double"></a-box>
+      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; shader: flat; side: double"></a-box>
       <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="หน้า (Face)\\n6 หน้า" align="center" color="#86efac" width="2" position="0 0.55 0.52"></a-text>
@@ -289,7 +307,7 @@ const SHAPES = {
   hexPrism: {
     th: "ปริซึมหกเหลี่ยม", color: "#D2A25A",
     build: () => `
-      <a-cylinder class="solid" segments-radial="6" radius="0.6" height="1.1" material="color:#D2A25A; opacity:0.9; transparent:true; shader: flat; side: double"></a-cylinder>
+      <a-cylinder class="solid" segments-radial="6" radius="0.6" height="1.1" material="color:#D2A25A; shader: flat; side: double"></a-cylinder>
       <a-entity class="wire" geometry="primitive: cylinder; segmentsRadial:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานหกเหลี่ยม (Base)" align="center" color="#86efac" width="2" position="0 -0.65 0"></a-text>
@@ -330,7 +348,7 @@ const SHAPES = {
   pyramid: {
     th: "พีระมิด", color: "#A98BD1",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; opacity:0.9; transparent:true; shader: flat; side: double"></a-cone>
+      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; shader: flat; side: double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานสี่เหลี่ยมจัตุรัส" align="center" color="#86efac" width="2" position="0 -0.55 0"></a-text>
@@ -367,7 +385,7 @@ const SHAPES = {
   cylinder: {
     th: "ทรงกระบอก", color: "#5FAE63",
     build: () => `
-      <a-cylinder class="solid" radius="0.5" height="1.2" material="color:#5FAE63; opacity:0.9; transparent:true; shader: flat; side: double"></a-cylinder>
+      <a-cylinder class="solid" radius="0.5" height="1.2" material="color:#5FAE63; shader: flat; side: double"></a-cylinder>
       <a-entity class="wire" geometry="primitive: cylinder; radius:0.505; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -391,7 +409,7 @@ const SHAPES = {
   cone: {
     th: "ทรงกรวย", color: "#E0C24C",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" material="color:#E0C24C; opacity:0.9; transparent:true; shader: flat; side: double"></a-cone>
+      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" material="color:#E0C24C; shader: flat; side: double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.605; radiusTop:0; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -416,7 +434,7 @@ const SHAPES = {
   sphere: {
     th: "ทรงกลม", color: "#DD6B6B",
     build: () => `
-      <a-sphere class="solid" radius="0.65" material="color:#DD6B6B; opacity:0.9; transparent:true; shader: flat; side: double"></a-sphere>
+      <a-sphere class="solid" radius="0.65" material="color:#DD6B6B; shader: flat; side: double"></a-sphere>
       <a-entity class="wire" geometry="primitive: sphere; radius:0.655" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="รัศมี r" align="center" color="#fbbf24" width="1.6" position="0.5 0 0.4"></a-text>
@@ -876,7 +894,7 @@ function buildCustomSurface() {
       group.appendChild(entity);
 
       const material = new THREE.MeshBasicMaterial({
-        color: SHAPES.custom.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide
+        color: SHAPES.custom.color, side: THREE.DoubleSide
       });
       const mesh = new THREE.Mesh(geometry, material);
       entity.setObject3D('mesh', mesh);
@@ -899,6 +917,9 @@ function buildCustomSurface() {
 }
 
 document.getElementById('eqGenBtn').onclick = buildCustomSurface;
+document.getElementById('eqPanelClose').onclick = () => {
+  document.getElementById('eqPanel').classList.remove('open');
+};
 
 /* ==================================================================
    INIT
