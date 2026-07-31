@@ -267,8 +267,18 @@ const SHAPES = {
   cube: {
     th: "ลูกบาศก์", color: "#7EA6D8",
     build: () => `
-      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; shader: flat; side: double"></a-box>
-      <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="assembled-model">
+        <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; shader: flat; side: double"></a-box>
+        <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
+      </a-entity>
+      <a-entity class="exploded-model" visible="false" material="color:#7EA6D8; shader: flat; side: double">
+        <a-plane width="1" height="1" position="0 0 0.7"></a-plane>
+        <a-plane width="1" height="1" position="0 0 -0.7" rotation="0 180 0"></a-plane>
+        <a-plane width="1" height="1" position="0 0.7 0" rotation="-90 0 0"></a-plane>
+        <a-plane width="1" height="1" position="0 -0.7 0" rotation="90 0 0"></a-plane>
+        <a-plane width="1" height="1" position="0.7 0 0" rotation="0 90 0"></a-plane>
+        <a-plane width="1" height="1" position="-0.7 0 0" rotation="0 -90 0"></a-plane>
+      </a-entity>
       <a-entity class="labels">
         <a-text value="หน้า (Face)\\n6 หน้า" align="center" color="#86efac" width="2" position="0 0.55 0.52"></a-text>
         <a-text value="ขอบ (Edge) 12 ขอบ" align="center" color="#fff" width="2" position="0 0.85 0" ></a-text>
@@ -307,8 +317,20 @@ const SHAPES = {
   hexPrism: {
     th: "ปริซึมหกเหลี่ยม", color: "#D2A25A",
     build: () => `
-      <a-cylinder class="solid" segments-radial="6" radius="0.6" height="1.1" material="color:#D2A25A; shader: flat; side: double"></a-cylinder>
-      <a-entity class="wire" geometry="primitive: cylinder; segmentsRadial:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="assembled-model">
+        <a-cylinder class="solid" segments-radial="6" radius="0.6" height="1.1" material="color:#D2A25A; shader: flat; side: double"></a-cylinder>
+        <a-entity class="wire" geometry="primitive: cylinder; segmentsRadial:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
+      </a-entity>
+      <a-entity class="exploded-model" visible="false" material="color:#D2A25A; shader: flat; side: double">
+        <a-cylinder segments-radial="6" radius="0.6" height="0.01" position="0 0.8 0"></a-cylinder>
+        <a-cylinder segments-radial="6" radius="0.6" height="0.01" position="0 -0.8 0"></a-cylinder>
+        <a-plane width="0.6" height="1.1" position="0.69 0 0.4" rotation="0 -30 0"></a-plane>
+        <a-plane width="0.6" height="1.1" position="0 0 0.8" rotation="0 -90 0"></a-plane>
+        <a-plane width="0.6" height="1.1" position="-0.69 0 0.4" rotation="0 -150 0"></a-plane>
+        <a-plane width="0.6" height="1.1" position="-0.69 0 -0.4" rotation="0 -210 0"></a-plane>
+        <a-plane width="0.6" height="1.1" position="0 0 -0.8" rotation="0 -270 0"></a-plane>
+        <a-plane width="0.6" height="1.1" position="0.69 0 -0.4" rotation="0 -330 0"></a-plane>
+      </a-entity>
       <a-entity class="labels">
         <a-text value="ฐานหกเหลี่ยม (Base)" align="center" color="#86efac" width="2" position="0 -0.65 0"></a-text>
         <a-text value="หน้าข้าง 6 หน้า" align="center" color="#fff" width="2" position="0.65 0.15 0.35"></a-text>
@@ -348,8 +370,17 @@ const SHAPES = {
   pyramid: {
     th: "พีระมิด", color: "#A98BD1",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; shader: flat; side: double"></a-cone>
-      <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="assembled-model">
+        <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; shader: flat; side: double"></a-cone>
+        <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
+      </a-entity>
+      <a-entity class="exploded-model" visible="false" material="color:#A98BD1; shader: flat; side: double">
+        <a-plane width="1.06" height="1.06" position="0 -0.7 0" rotation="-90 0 0"></a-plane>
+        <a-triangle vertex-a="0 0.5 0.4" vertex-b="-0.53 -0.5 0.93" vertex-c="0.53 -0.5 0.93"></a-triangle>
+        <a-triangle vertex-a="0.4 0.5 0" vertex-b="0.93 -0.5 0.53" vertex-c="0.93 -0.5 -0.53"></a-triangle>
+        <a-triangle vertex-a="0 0.5 -0.4" vertex-b="0.53 -0.5 -0.93" vertex-c="-0.53 -0.5 -0.93"></a-triangle>
+        <a-triangle vertex-a="-0.4 0.5 0" vertex-b="-0.93 -0.5 -0.53" vertex-c="-0.93 -0.5 0.53"></a-triangle>
+      </a-entity>
       <a-entity class="labels">
         <a-text value="ฐานสี่เหลี่ยมจัตุรัส" align="center" color="#86efac" width="2" position="0 -0.55 0"></a-text>
         <a-text value="หน้าสามเหลี่ยม 4 หน้า" align="center" color="#fff" width="2" position="0.6 0.05 0.3"></a-text>
@@ -470,6 +501,7 @@ const shapeOrder = ["cube","hexPrism","pyramid","cylinder","cone","sphere","cust
 let currentShape = "cube";
 let labelsOn = true;
 let arMode = false;
+let isExploded = false;
 
 /* ==================================================================
    BUILD SHAPE TABS
@@ -489,6 +521,12 @@ function selectShape(id) {
   document.querySelectorAll('.shapeTab').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
+
+  // Reset exploded state when changing shape
+  if (isExploded) {
+    isExploded = false;
+    document.getElementById('btnNet').classList.remove('active');
+  }
 
   const isCustom = !!SHAPES[id].isCustom;
   document.getElementById('eqPanel').classList.toggle('open', isCustom);
@@ -520,6 +558,20 @@ function selectShape(id) {
 function renderModel() {
   const group = document.getElementById('modelGroup');
   group.innerHTML = SHAPES[currentShape].build();
+  applyLabelsVisibility();
+}
+
+function applyExplodedView() {
+  const assembled = document.querySelector('.assembled-model');
+  const exploded = document.querySelector('.exploded-model');
+  if (!assembled || !exploded) return;
+
+  assembled.setAttribute('visible', !isExploded);
+  exploded.setAttribute('visible', isExploded);
+
+  // Also hide wireframe and labels when exploded
+  const wire = assembled.querySelector('.wire');
+  if (wire) wire.setAttribute('visible', !isExploded);
   applyLabelsVisibility();
 }
 
@@ -596,9 +648,10 @@ function hideHintSoon() {
    LABELS TOGGLE
    ================================================================== */
 function applyLabelsVisibility() {
+  if (isExploded) return; // Labels are always off in exploded view
   const g = modelGroup();
-  const labelsEl = g.querySelector('.labels');
-  if (labelsEl) labelsEl.setAttribute('visible', labelsOn);
+  const labelsEl = g ? g.querySelector('.labels') : null;
+  if (labelsEl) labelsEl.setAttribute('visible', labelsOn && !isExploded);
 }
 document.getElementById('btnLabels').onclick = (e) => {
   labelsOn = !labelsOn;
@@ -712,7 +765,13 @@ function openContentFor(kind) {
 
 document.getElementById('btnFormula').onclick = () => openContentFor('formula');
 document.getElementById('btnInfo').onclick = () => openContentFor('info');
-document.getElementById('btnNet').onclick = () => openContentFor('net');
+document.getElementById('btnNet').onclick = (e) => {
+  if (SHAPES[currentShape].hasNet) {
+    isExploded = !isExploded;
+    e.currentTarget.classList.toggle('active', isExploded);
+    applyExplodedView();
+  }
+};
 document.getElementById('helpBtn').onclick = () => openContentFor('help');
 
 /* ==================================================================
