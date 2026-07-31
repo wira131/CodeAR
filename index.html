@@ -6,6 +6,7 @@
 <title>WebAR เรขาคณิตสามมิติ - Geometry Learning Demo</title>
 
 <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -65,6 +66,38 @@
     white-space: nowrap; cursor: pointer;
   }
   .shapeTab.active { background: #2563eb; border-color:#2563eb; color:#fff; font-weight:600; }
+
+  /* ---------- custom equation panel ---------- */
+  #eqPanel {
+    position: fixed; top: 100px; left: 10px; right: 10px; z-index: 18;
+    background: rgba(15,23,42,.92); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 14px; padding: 12px 14px; color: #e5e7eb;
+    display: none;
+  }
+  #eqPanel.open { display: block; }
+  #eqPanel label { font-size: 11.5px; color: #93c5fd; display:block; margin-bottom:3px; }
+  #eqPanel input[type=text] {
+    width: 100%; background: #1e293b; border: 1px solid #334155; color: #fef3c7;
+    font-size: 14px; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px;
+    font-family: monospace;
+  }
+  #eqRow { display: flex; gap: 8px; margin-bottom: 8px; }
+  #eqRow > div { flex: 1; }
+  #eqRow input[type=number] {
+    width: 100%; background: #1e293b; border: 1px solid #334155; color: #e5e7eb;
+    font-size: 13px; padding: 7px 8px; border-radius: 8px;
+  }
+  #eqGenBtn {
+    width: 100%; background: #2563eb; border: none; color: #fff;
+    font-size: 13.5px; font-weight: 600; padding: 10px; border-radius: 10px;
+    cursor: pointer;
+  }
+  #eqGenBtn[disabled] { opacity: .5; }
+  #eqError {
+    font-size: 12px; color: #fca5a5; margin-top: 8px; display: none;
+    white-space: pre-wrap;
+  }
+  #eqHint { font-size: 11.5px; color: #94a3b8; margin-top: 8px; line-height: 1.5; }
 
   /* ---------- hint ---------- */
   #gestureHint {
@@ -161,6 +194,25 @@
 <div id="gestureLayer"></div>
 <div id="gestureHint">👆 ลากเพื่อหมุน · บีบนิ้ว/เลื่อนล้อเมาส์เพื่อซูม</div>
 
+<!-- ================= CUSTOM EQUATION PANEL ================= -->
+<div id="eqPanel">
+  <label>สมการพื้นผิว f(x, y, z) = 0 หรือ LHS = RHS</label>
+  <input type="text" id="eqInput" value="x^2 + y^2 + z^2 - 9" autocomplete="off" autocapitalize="off" spellcheck="false" />
+  <div id="eqRow">
+    <div>
+      <label>ขอบเขต ±</label>
+      <input type="number" id="eqBound" value="3" step="0.5" min="0.5" max="10" />
+    </div>
+    <div>
+      <label>ความละเอียด</label>
+      <input type="number" id="eqRes" value="26" step="2" min="10" max="40" />
+    </div>
+  </div>
+  <button id="eqGenBtn">⚙️ สร้างโมเดล 3 มิติ</button>
+  <div id="eqError"></div>
+  <div id="eqHint">ตัวอย่าง: ทรงกลม x^2+y^2+z^2-9 · ทอรัส (sqrt(x^2+y^2)-2)^2+z^2-0.5 · พาราโบลอยด์ z-(x^2+y^2-3)</div>
+</div>
+
 <!-- ================= TOP BAR ================= -->
 <div id="topbar">
   <div id="titleRow">
@@ -197,7 +249,7 @@ const SHAPES = {
   cube: {
     th: "ลูกบาศก์", color: "#7EA6D8",
     build: () => `
-      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-box>
+      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; opacity:0.9; transparent:true; shader: flat; side: double"></a-box>
       <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="หน้า (Face)\\n6 หน้า" align="center" color="#86efac" width="2" position="0 0.55 0.52"></a-text>
@@ -237,8 +289,8 @@ const SHAPES = {
   hexPrism: {
     th: "ปริซึมหกเหลี่ยม", color: "#D2A25A",
     build: () => `
-      <a-cylinder class="solid" segments="6" radius="0.6" height="1.1" material="color:#D2A25A; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cylinder>
-      <a-entity class="wire" geometry="primitive: cylinder; segments:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
+      <a-cylinder class="solid" segments-radial="6" radius="0.6" height="1.1" material="color:#D2A25A; opacity:0.9; transparent:true; shader: flat; side: double"></a-cylinder>
+      <a-entity class="wire" geometry="primitive: cylinder; segmentsRadial:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานหกเหลี่ยม (Base)" align="center" color="#86efac" width="2" position="0 -0.65 0"></a-text>
         <a-text value="หน้าข้าง 6 หน้า" align="center" color="#fff" width="2" position="0.65 0.15 0.35"></a-text>
@@ -278,7 +330,7 @@ const SHAPES = {
   pyramid: {
     th: "พีระมิด", color: "#A98BD1",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cone>
+      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; opacity:0.9; transparent:true; shader: flat; side: double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานสี่เหลี่ยมจัตุรัส" align="center" color="#86efac" width="2" position="0 -0.55 0"></a-text>
@@ -315,7 +367,7 @@ const SHAPES = {
   cylinder: {
     th: "ทรงกระบอก", color: "#5FAE63",
     build: () => `
-      <a-cylinder class="solid" radius="0.5" height="1.2" material="color:#5FAE63; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cylinder>
+      <a-cylinder class="solid" radius="0.5" height="1.2" material="color:#5FAE63; opacity:0.9; transparent:true; shader: flat; side: double"></a-cylinder>
       <a-entity class="wire" geometry="primitive: cylinder; radius:0.505; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -339,7 +391,7 @@ const SHAPES = {
   cone: {
     th: "ทรงกรวย", color: "#E0C24C",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" material="color:#E0C24C; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cone>
+      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" material="color:#E0C24C; opacity:0.9; transparent:true; shader: flat; side: double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.605; radiusTop:0; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -364,7 +416,7 @@ const SHAPES = {
   sphere: {
     th: "ทรงกลม", color: "#DD6B6B",
     build: () => `
-      <a-sphere class="solid" radius="0.65" material="color:#DD6B6B; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-sphere>
+      <a-sphere class="solid" radius="0.65" material="color:#DD6B6B; opacity:0.9; transparent:true; shader: flat; side: double"></a-sphere>
       <a-entity class="wire" geometry="primitive: sphere; radius:0.655" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="รัศมี r" align="center" color="#fbbf24" width="1.6" position="0.5 0 0.4"></a-text>
@@ -381,9 +433,22 @@ const SHAPES = {
     examples: "ลูกฟุตบอล, ลูกปิงปอง, ลูกแก้ว, ดาวเคราะห์",
     hasNet: false
   },
+
+  custom: {
+    th: "สมการอิสระ", color: "#38bdf8",
+    isCustom: true,
+    build: () => ``,
+    faces: null, edges: null, vertices: null,
+    faceNote: "รูปทรงที่สร้างจากสมการไม่มีจำนวนหน้า/ขอบ/จุดยอดตายตัว ขึ้นอยู่กับสมการที่ป้อน",
+    formulaTitle: "สมการอิสระ",
+    formulas: [],
+    description: `พิมพ์สมการพื้นผิวในรูป f(x, y, z) = 0 (หรือ LHS = RHS) แล้วกด "สร้างโมเดล 3 มิติ" ระบบจะคำนวณและวาดพื้นผิวจากสมการนั้นให้ทันที โดยใช้เทคนิคการสร้างพื้นผิวจากฟิลด์สเกลาร์ (คล้าย Marching Cubes)`,
+    examples: "ทรงกลม: x²+y²+z²=9 · ทอรัส: (√(x²+y²)-2)²+z²=0.5 · พาราโบลอยด์: z=x²+y²-3",
+    hasNet: false
+  },
 };
 
-const shapeOrder = ["cube","hexPrism","pyramid","cylinder","cone","sphere"];
+const shapeOrder = ["cube","hexPrism","pyramid","cylinder","cone","sphere","custom"];
 let currentShape = "cube";
 let labelsOn = true;
 let arMode = false;
@@ -406,11 +471,28 @@ function selectShape(id) {
   document.querySelectorAll('.shapeTab').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
-  renderModel();
-  resetTransform();
-  // update net button availability
+
+  const isCustom = !!SHAPES[id].isCustom;
+  document.getElementById('eqPanel').classList.toggle('open', isCustom);
+
   const btnNet = document.getElementById('btnNet');
-  btnNet.disabled = !SHAPES[id].hasNet;
+  const btnFormula = document.getElementById('btnFormula');
+  const btnLabels = document.getElementById('btnLabels');
+
+  if (isCustom) {
+    // clear the viewport; user must press "generate" to build a surface
+    document.getElementById('modelGroup').innerHTML = '';
+    btnNet.disabled = true;
+    btnFormula.disabled = true;
+    btnLabels.disabled = true;
+  } else {
+    btnNet.disabled = !SHAPES[id].hasNet;
+    btnFormula.disabled = false;
+    btnLabels.disabled = false;
+    renderModel();
+    resetTransform();
+  }
+
   // if sheet is open, refresh its content to match new shape
   if (sheet.classList.contains('open') && sheet.dataset.kind) {
     openContentFor(sheet.dataset.kind);
@@ -614,6 +696,209 @@ document.getElementById('btnFormula').onclick = () => openContentFor('formula');
 document.getElementById('btnInfo').onclick = () => openContentFor('info');
 document.getElementById('btnNet').onclick = () => openContentFor('net');
 document.getElementById('helpBtn').onclick = () => openContentFor('help');
+
+/* ==================================================================
+   CUSTOM EQUATION → 3D SURFACE (Surface Nets isosurface extraction)
+   ================================================================== */
+
+/**
+ * Samples a scalar field fn(x,y,z) on a grid over [-bound,bound]^3 with
+ * `res` cells per axis, then extracts the zero-isosurface as a triangle
+ * mesh using the Naive Surface Nets algorithm.
+ * Returns { positions: Float32Array, indices: Uint32Array }.
+ */
+function generateIsosurface(fn, bound, res) {
+  const dim = res + 1;
+  const step = (2 * bound) / res;
+  const field = new Float32Array(dim * dim * dim);
+  const idx = (i, j, k) => i + j * dim + k * dim * dim;
+
+  for (let k = 0; k < dim; k++) {
+    for (let j = 0; j < dim; j++) {
+      for (let i = 0; i < dim; i++) {
+        const x = -bound + i * step;
+        const y = -bound + j * step;
+        const z = -bound + k * step;
+        let v;
+        try { v = fn(x, y, z); } catch (e) { v = NaN; }
+        field[idx(i, j, k)] = (typeof v === 'number' && isFinite(v)) ? v : 1e6;
+      }
+    }
+  }
+
+  const cornerOffset = [
+    [0,0,0],[1,0,0],[1,1,0],[0,1,0],
+    [0,0,1],[1,0,1],[1,1,1],[0,1,1]
+  ];
+  const edgePairs = [
+    [0,1],[1,2],[2,3],[3,0],
+    [4,5],[5,6],[6,7],[7,4],
+    [0,4],[1,5],[2,6],[3,7]
+  ];
+
+  const cidx = (i, j, k) => i + j * res + k * res * res;
+  const cellVert = new Int32Array(res * res * res).fill(-1);
+  const positions = [];
+
+  for (let k = 0; k < res; k++) {
+    for (let j = 0; j < res; j++) {
+      for (let i = 0; i < res; i++) {
+        let anyPos = false, anyNeg = false;
+        const cVal = new Array(8), cPos = new Array(8);
+        for (let n = 0; n < 8; n++) {
+          const o = cornerOffset[n];
+          const v = field[idx(i+o[0], j+o[1], k+o[2])];
+          cVal[n] = v;
+          cPos[n] = [-bound+(i+o[0])*step, -bound+(j+o[1])*step, -bound+(k+o[2])*step];
+          if (v >= 0) anyPos = true; else anyNeg = true;
+        }
+        if (!(anyPos && anyNeg)) continue;
+
+        let sx=0, sy=0, sz=0, count=0;
+        for (const [a,b] of edgePairs) {
+          const va = cVal[a], vb = cVal[b];
+          if ((va >= 0) !== (vb >= 0)) {
+            const t = va / (va - vb);
+            const pa = cPos[a], pb = cPos[b];
+            sx += pa[0] + t*(pb[0]-pa[0]);
+            sy += pa[1] + t*(pb[1]-pa[1]);
+            sz += pa[2] + t*(pb[2]-pa[2]);
+            count++;
+          }
+        }
+        if (count === 0) continue;
+        const vIndex = positions.length / 3;
+        positions.push(sx/count, sy/count, sz/count);
+        cellVert[cidx(i,j,k)] = vIndex;
+      }
+    }
+  }
+
+  function cellActive(i,j,k) {
+    if (i<0||j<0||k<0||i>=res||j>=res||k>=res) return -1;
+    return cellVert[cidx(i,j,k)];
+  }
+
+  const indices = [];
+  function pushQuad(v0,v1,v2,v3) {
+    indices.push(v0,v1,v2, v0,v2,v3);
+  }
+
+  // edges along Z
+  for (let k=0;k<res;k++) for (let j=0;j<=res;j++) for (let i=0;i<=res;i++) {
+    const va = field[idx(i,j,k)], vb = field[idx(i,j,k+1)];
+    if ((va>=0) === (vb>=0)) continue;
+    const c00=cellActive(i-1,j-1,k), c10=cellActive(i,j-1,k), c11=cellActive(i,j,k), c01=cellActive(i-1,j,k);
+    if (c00<0||c10<0||c11<0||c01<0) continue;
+    pushQuad(c00,c10,c11,c01);
+  }
+  // edges along Y
+  for (let j=0;j<res;j++) for (let k=0;k<=res;k++) for (let i=0;i<=res;i++) {
+    const va = field[idx(i,j,k)], vb = field[idx(i,j+1,k)];
+    if ((va>=0) === (vb>=0)) continue;
+    const c00=cellActive(i-1,j,k-1), c10=cellActive(i,j,k-1), c11=cellActive(i,j,k), c01=cellActive(i-1,j,k);
+    if (c00<0||c10<0||c11<0||c01<0) continue;
+    pushQuad(c00,c10,c11,c01);
+  }
+  // edges along X
+  for (let i=0;i<res;i++) for (let k=0;k<=res;k++) for (let j=0;j<=res;j++) {
+    const va = field[idx(i,j,k)], vb = field[idx(i+1,j,k)];
+    if ((va>=0) === (vb>=0)) continue;
+    const c00=cellActive(i,j-1,k-1), c10=cellActive(i,j,k-1), c11=cellActive(i,j,k), c01=cellActive(i,j-1,k);
+    if (c00<0||c10<0||c11<0||c01<0) continue;
+    pushQuad(c00,c10,c11,c01);
+  }
+
+  return { positions: new Float32Array(positions), indices: new Uint32Array(indices) };
+}
+
+function parseEquation(str) {
+  const parts = str.split('=');
+  let exprStr;
+  if (parts.length === 2) exprStr = `(${parts[0]}) - (${parts[1]})`;
+  else exprStr = str;
+  const node = math.parse(exprStr);
+  const compiled = node.compile();
+  return (x, y, z) => compiled.evaluate({ x, y, z });
+}
+
+function buildCustomSurface() {
+  const eqInput = document.getElementById('eqInput');
+  const boundInput = document.getElementById('eqBound');
+  const resInput = document.getElementById('eqRes');
+  const genBtn = document.getElementById('eqGenBtn');
+  const errBox = document.getElementById('eqError');
+
+  errBox.style.display = 'none';
+  genBtn.disabled = true;
+  genBtn.textContent = '⏳ กำลังคำนวณ...';
+
+  // yield to the browser so the "calculating" state paints before the heavy loop runs
+  setTimeout(() => {
+    try {
+      const fn = parseEquation(eqInput.value.trim());
+      // sanity check
+      const testVal = fn(0.123, 0.234, 0.345);
+      if (typeof testVal !== 'number' || isNaN(testVal)) {
+        throw new Error('สมการนี้คำนวณค่าไม่ได้ ตรวจสอบรูปแบบสมการอีกครั้ง');
+      }
+
+      const bound = Math.min(Math.max(parseFloat(boundInput.value) || 3, 0.5), 10);
+      const res = Math.min(Math.max(parseInt(resInput.value) || 26, 10), 40);
+
+      const { positions, indices } = generateIsosurface(fn, bound, res);
+      if (positions.length === 0) {
+        throw new Error('ไม่พบพื้นผิวภายในขอบเขตที่กำหนด ลองเพิ่มค่า "ขอบเขต" หรือตรวจสอบสมการ');
+      }
+
+      const THREE = AFRAME.THREE;
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+      // center & normalize scale so it frames similarly to the other shapes
+      geometry.computeBoundingBox();
+      const bb = geometry.boundingBox;
+      const center = new THREE.Vector3();
+      bb.getCenter(center);
+      geometry.translate(-center.x, -center.y, -center.z);
+      const size = new THREE.Vector3();
+      bb.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 1.4 / maxDim;
+      geometry.scale(scale, scale, scale);
+      geometry.computeVertexNormals();
+
+      const group = document.getElementById('modelGroup');
+      group.innerHTML = '';
+
+      const entity = document.createElement('a-entity');
+      group.appendChild(entity);
+
+      const material = new THREE.MeshBasicMaterial({
+        color: SHAPES.custom.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      entity.setObject3D('mesh', mesh);
+
+      const wireGeo = new THREE.WireframeGeometry(geometry);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+      const wireframe = new THREE.LineSegments(wireGeo, wireMat);
+      entity.setObject3D('wireframe', wireframe);
+
+      resetTransform();
+    } catch (err) {
+      console.error(err);
+      errBox.textContent = '❌ ' + (err.message || 'เกิดข้อผิดพลาดในการสร้างโมเดล');
+      errBox.style.display = 'block';
+    } finally {
+      genBtn.disabled = false;
+      genBtn.textContent = '⚙️ สร้างโมเดล 3 มิติ';
+    }
+  }, 20);
+}
+
+document.getElementById('eqGenBtn').onclick = buildCustomSurface;
 
 /* ==================================================================
    INIT
