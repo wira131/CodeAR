@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>WebAR เรขาคณิตสามมิติ - Geometry Learning Demo</title>
+
+<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    font-family: "Sarabun", "Segoe UI", sans-serif;
+    overflow: hidden;
+    background: #0b1220;
+  }
+
+  /* ---------- backgrounds ---------- */
+  #camFeed {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 0; display: none;
+  }
+  #studioBg {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at center, #1e293b 0%, #0b1220 70%);
+  }
+
+  a-scene {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 1; background: transparent !important;
+  }
+
+  /* Gesture layer captures drag/pinch/wheel for rotate & zoom */
+  #gestureLayer {
+    position: fixed; inset: 0; z-index: 5;
+    touch-action: none;
+  }
+
+  /* ---------- Top bar ---------- */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    padding: 8px 10px calc(6px + env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(0,0,0,.8), rgba(0,0,0,0));
+    color: #fff;
+  }
+  #titleRow { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  #titleRow h1 { font-size: 14px; margin: 0; font-weight: 600; }
+  .iconBtn {
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3);
+    color:#fff; width:34px; height:34px; border-radius:50%; font-size:15px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .iconBtn.active { background:#2563eb; border-color:#2563eb; }
+
+  #shapeTabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  #shapeTabs::-webkit-scrollbar { display: none; }
+  .shapeTab {
+    flex: 0 0 auto;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.28);
+    color: #e5e7eb; font-size: 12.5px; padding: 7px 12px; border-radius: 999px;
+    white-space: nowrap; cursor: pointer;
+  }
+  .shapeTab.active { background: #2563eb; border-color:#2563eb; color:#fff; font-weight:600; }
+
+  /* ---------- hint ---------- */
+  #gestureHint {
+    position: fixed; top: 92px; left: 50%; transform: translateX(-50%);
+    z-index: 15; background: rgba(0,0,0,.55); color: #cbd5e1;
+    padding: 6px 14px; border-radius: 20px; font-size: 12px;
+    pointer-events: none; transition: opacity .4s;
+  }
+
+  /* ---------- Bottom control bar ---------- */
+  #controls {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    display: flex; justify-content: center; gap: 8px;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,0));
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.35);
+    color: #fff; font-size: 12.5px; padding: 9px 13px; border-radius: 999px;
+    cursor: pointer; user-select: none;
+  }
+  .btn.active { background: #2563eb; border-color: #2563eb; }
+  .btn[disabled] { opacity: .35; cursor: not-allowed; }
+
+  /* ---------- Bottom sheet ---------- */
+  #sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    max-height: 68%; overflow-y: auto;
+    background: #0f172a; color: #e5e7eb;
+    border-radius: 18px 18px 0 0;
+    padding: 16px 18px 26px;
+    transform: translateY(105%);
+    transition: transform .28s ease;
+    box-shadow: 0 -6px 24px rgba(0,0,0,.5);
+  }
+  #sheet.open { transform: translateY(0); }
+  #sheet h2 { margin: 0 0 8px; font-size: 17px; color: #93c5fd; }
+  #sheet h3 { margin: 14px 0 6px; font-size: 14px; color: #fbbf24; }
+  #sheet p, #sheet li { font-size: 13.5px; line-height: 1.6; margin: 4px 0; color: #d1d5db; }
+  #sheet .formula {
+    background: #1e293b; border-left: 3px solid #3b82f6;
+    padding: 8px 12px; border-radius: 8px; font-size: 14px;
+    margin: 6px 0; color: #fef3c7;
+  }
+  #sheet .netbox { background:#fff; border-radius:10px; padding:10px; margin-top:8px; }
+  #sheetClose {
+    position: absolute; top: 10px; right: 14px; color: #94a3b8;
+    font-size: 20px; cursor: pointer; background: none; border: none;
+  }
+  #sheetHandle {
+    width: 42px; height: 4px; background: #475569; border-radius: 3px;
+    margin: 0 auto 10px;
+  }
+
+  /* ---------- Loading / permission overlay ---------- */
+  #loader {
+    height: 100%; width: 100%; position: fixed; inset:0;
+    background-color: rgba(0,0,0,0.9); z-index: 999;
+    display: none; justify-content: center; align-items: center;
+    color: #fff; font-size: 15px; text-align: center; padding: 20px;
+  }
+  #loader button {
+    margin-top: 14px; background: #2563eb; border: none; color: #fff;
+    padding: 10px 20px; border-radius: 999px; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div id="studioBg"></div>
+<video id="camFeed" autoplay playsinline muted></video>
+
+<div id="loader">
+  <div>
+    <div id="loaderText">📷 กำลังขอสิทธิ์ใช้กล้อง...</div>
+    <button id="retryBtn" style="display:none">ลองอีกครั้ง</button>
+    <br/><button id="cancelArBtn" style="display:none; background:#334155; margin-top:8px;">กลับไปโหมดปกติ</button>
+  </div>
+</div>
+
+<!-- ================= A-FRAME SCENE ================= -->
+<a-scene embedded vr-mode-ui="enabled: false"
+         renderer="alpha: true; logarithmicDepthBuffer: true; precision: medium;"
+         background="transparent: true">
+  <a-entity id="rig" camera look-controls-enabled="false" wasd-controls-enabled="false" position="0 0 0">
+    <a-entity id="modelGroup" position="0 0 -3" rotation="10 -20 0" scale="1 1 1"></a-entity>
+  </a-entity>
+  <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+  <a-entity light="type: directional; intensity: 0.6" position="1 1 1"></a-entity>
+</a-scene>
+
+<div id="gestureLayer"></div>
+<div id="gestureHint">👆 ลากเพื่อหมุน · บีบนิ้ว/เลื่อนล้อเมาส์เพื่อซูม</div>
+
+<!-- ================= TOP BAR ================= -->
+<div id="topbar">
+  <div id="titleRow">
+    <h1>🔺 Geometry WebAR Demo</h1>
+    <div style="display:flex; gap:6px;">
+      <button class="iconBtn" id="helpBtn" title="คำแนะนำการใช้งาน">❓</button>
+      <button class="iconBtn" id="modeBtn" title="สลับโหมด AR">🎥</button>
+    </div>
+  </div>
+  <div id="shapeTabs"></div>
+</div>
+
+<!-- ================= BOTTOM CONTROLS ================= -->
+<div id="controls">
+  <button class="btn active" id="btnLabels">🏷️ ป้ายกำกับ</button>
+  <button class="btn" id="btnNet">📄 รูปคลี่</button>
+  <button class="btn" id="btnFormula">📐 สูตรคำนวณ</button>
+  <button class="btn" id="btnInfo">ℹ️ คำอธิบาย</button>
+</div>
+
+<!-- ================= BOTTOM SHEET ================= -->
+<div id="sheet">
+  <button id="sheetClose">✕</button>
+  <div id="sheetHandle"></div>
+  <div id="sheetBody"></div>
+</div>
+
+<script>
+/* ==================================================================
+   SHAPE DATA — ครบทั้ง 6 รูปทรงตามขอบเขตโครงงาน
+   ================================================================== */
+const SHAPES = {
+
+  cube: {
+    th: "ลูกบาศก์", color: "#7EA6D8",
+    build: () => `
+      <a-box class="solid" width="1" height="1" depth="1" color="#7EA6D8" opacity="0.9" transparent="true"></a-box>
+      <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="หน้า (Face)\\n6 หน้า" align="center" color="#86efac" width="2" position="0 0.55 0.52"></a-text>
+        <a-text value="ขอบ (Edge) 12 ขอบ" align="center" color="#fff" width="2" position="0 0.85 0" ></a-text>
+        <a-text value="จุดยอด (Vertex)\\n8 จุด" align="center" color="#fbbf24" width="2" position="0.75 0.65 0.5"></a-text>
+        <a-text value="a = ความยาวด้าน" align="center" color="#93c5fd" width="1.8" position="-0.7 -0.35 0.5"></a-text>
+      </a-entity>`,
+    faces: 6, edges: 12, vertices: 8,
+    formulaTitle: "ลูกบาศก์ (Cube)",
+    formulas: [
+      ["พื้นที่ของหน้า (A<sub>face</sub>)", "A<sub>face</sub> = a²"],
+      ["พื้นที่ผิวทั้งหมด (S)", "S = 6a²"],
+      ["ปริมาตร (V)", "V = a³"],
+      ["เส้นทแยงมุมของหน้า (d<sub>f</sub>)", "d<sub>f</sub> = a√2"],
+      ["เส้นทแยงมุมภายใน (d<sub>s</sub>)", "d<sub>s</sub> = a√3"],
+    ],
+    description: `ลูกบาศก์คือรูปทรงสามมิติที่ทุกด้านเป็นสี่เหลี่ยมจัตุรัสขนาดเท่ากัน มี 6 หน้า 12 ขอบ 8 จุดยอด ทุกมุมเป็นมุมฉาก 90 องศา`,
+    examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
+    hasNet: true,
+    netSvg: `<svg viewBox="0 0 200 120" width="100%">
+      <g fill="#93c5fd" stroke="#1e3a8a" stroke-width="2">
+        <rect x="40" y="0" width="40" height="40"/>
+        <rect x="0" y="40" width="40" height="40"/>
+        <rect x="40" y="40" width="40" height="40"/>
+        <rect x="80" y="40" width="40" height="40"/>
+        <rect x="120" y="40" width="40" height="40"/>
+        <rect x="40" y="80" width="40" height="40"/>
+      </g>
+      <g font-size="10" fill="#1e3a8a" text-anchor="middle" font-family="sans-serif">
+        <text x="60" y="24">บน</text><text x="20" y="64">ซ้าย</text>
+        <text x="60" y="64">หน้า</text><text x="100" y="64">ขวา</text>
+        <text x="140" y="64">หลัง</text><text x="60" y="104">ล่าง</text>
+      </g></svg>`,
+    netNote: "เมื่อกางลูกบาศก์ออกจะได้สี่เหลี่ยมจัตุรัส 6 รูปต่อกันเป็นรูปกากบาท"
+  },
+
+  hexPrism: {
+    th: "ปริซึมหกเหลี่ยม", color: "#D2A25A",
+    build: () => `
+      <a-cylinder class="solid" segments="6" radius="0.6" height="1.1" color="#D2A25A" opacity="0.9" transparent="true"></a-cylinder>
+      <a-entity class="wire" geometry="primitive: cylinder; segments:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="ฐานหกเหลี่ยม (Base)" align="center" color="#86efac" width="2" position="0 -0.65 0"></a-text>
+        <a-text value="หน้าข้าง 6 หน้า" align="center" color="#fff" width="2" position="0.65 0.15 0.35"></a-text>
+        <a-text value="ขอบ 18 ขอบ / จุดยอด 12 จุด" align="center" color="#fbbf24" width="2.2" position="0 0.75 0"></a-text>
+        <a-text value="ความสูง h" align="center" color="#93c5fd" width="1.6" position="-0.75 0 0"></a-text>
+      </a-entity>`,
+    faces: 8, edges: 18, vertices: 12,
+    formulaTitle: "ปริซึมหกเหลี่ยม (Hexagonal Prism)",
+    formulas: [
+      ["พื้นที่ฐาน (B)", "B = (3√3⁄2) a²"],
+      ["พื้นที่ผิวข้าง (L)", "L = 6ah"],
+      ["พื้นที่ผิวทั้งหมด (S)", "S = 3√3 a² + 6ah"],
+      ["ปริมาตร (V)", "V = (3√3⁄2) a²h"],
+      ["ความยาวรอบฐาน (P)", "P = 6a"],
+    ],
+    description: `ปริซึมหกเหลี่ยมมีฐาน 2 ฐานเป็นรูปหกเหลี่ยมด้านเท่าวางขนานกัน และมีหน้าข้างเป็นสี่เหลี่ยมผืนผ้า 6 หน้า เชื่อมระหว่างฐานทั้งสอง มีทั้งหมด 8 หน้า 18 ขอบ 12 จุดยอด`,
+    examples: "แท่งดินสอหกเหลี่ยม, น็อตหกเหลี่ยม",
+    hasNet: true,
+    netSvg: `<svg viewBox="0 0 190 175" width="100%">
+      <g fill="#f5cd8a" stroke="#92400e" stroke-width="2">
+        <rect x="0" y="60" width="30" height="60"/>
+        <rect x="30" y="60" width="30" height="60"/>
+        <rect x="60" y="60" width="30" height="60"/>
+        <rect x="90" y="60" width="30" height="60"/>
+        <rect x="120" y="60" width="30" height="60"/>
+        <rect x="150" y="60" width="30" height="60"/>
+        <polygon points="15,8 0.3,16.5 0.3,33.5 15,42 29.7,33.5 29.7,16.5"/>
+        <polygon points="165,128 150.3,136.5 150.3,153.5 165,162 179.7,153.5 179.7,136.5"/>
+      </g>
+      <g font-size="9" fill="#78350f" text-anchor="middle" font-family="sans-serif">
+        <text x="15" y="26">บน</text><text x="165" y="146">ล่าง</text>
+        <text x="75" y="94">หน้าข้าง 6 หน้า (สี่เหลี่ยมผืนผ้า)</text>
+      </g></svg>`,
+    netNote: "กางออกจะได้หกเหลี่ยม 2 รูป (ฐานบน-ล่าง) และสี่เหลี่ยมผืนผ้า 6 รูปเรียงต่อกันเป็นแถบด้านข้าง"
+  },
+
+  pyramid: {
+    th: "พีระมิด", color: "#A98BD1",
+    build: () => `
+      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" color="#A98BD1" opacity="0.9" transparent="true"></a-cone>
+      <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="ฐานสี่เหลี่ยมจัตุรัส" align="center" color="#86efac" width="2" position="0 -0.55 0"></a-text>
+        <a-text value="หน้าสามเหลี่ยม 4 หน้า" align="center" color="#fff" width="2" position="0.6 0.05 0.3"></a-text>
+        <a-text value="จุดยอด (Apex)" align="center" color="#fbbf24" width="1.8" position="0 0.7 0"></a-text>
+        <a-text value="ความสูงเอียง l" align="center" color="#93c5fd" width="1.8" position="-0.65 0.15 0.3"></a-text>
+      </a-entity>`,
+    faces: 5, edges: 8, vertices: 5,
+    formulaTitle: "พีระมิดฐานสี่เหลี่ยม (Square Pyramid)",
+    formulas: [
+      ["พื้นที่ฐาน (B)", "B = a²"],
+      ["พื้นที่ผิวข้าง (L)", "L = 2al"],
+      ["พื้นที่ผิวทั้งหมด (S)", "S = a² + 2al"],
+      ["ปริมาตร (V)", "V = (1⁄3) a²h"],
+      ["ความสูงเอียง (l)", "l = √(h² + (a⁄2)²)"],
+    ],
+    description: `พีระมิดฐานสี่เหลี่ยมมีฐานเป็นสี่เหลี่ยมจัตุรัส 1 ฐาน และมีหน้าสามเหลี่ยม 4 หน้าเชื่อมมาบรรจบกันที่จุดยอดเดียวเหนือฐาน มี 5 หน้า 8 ขอบ 5 จุดยอด`,
+    examples: "พีระมิดแห่งอียิปต์, หลังคาอาคารทรงจั่ว",
+    hasNet: true,
+    netSvg: `<svg viewBox="0 0 200 200" width="100%">
+      <g fill="#c9b3e6" stroke="#5b21b6" stroke-width="2">
+        <rect x="60" y="60" width="80" height="80"/>
+        <polygon points="60,60 140,60 100,10"/>
+        <polygon points="140,60 140,140 190,100"/>
+        <polygon points="60,140 140,140 100,190"/>
+        <polygon points="60,60 60,140 10,100"/>
+      </g>
+      <g font-size="10" fill="#4c1d95" text-anchor="middle" font-family="sans-serif">
+        <text x="100" y="104">ฐาน</text>
+      </g></svg>`,
+    netNote: "กางออกจะได้สี่เหลี่ยมจัตุรัสตรงกลาง (ฐาน) และสามเหลี่ยม 4 รูปล้อมรอบทั้ง 4 ด้าน"
+  },
+
+  cylinder: {
+    th: "ทรงกระบอก", color: "#5FAE63",
+    build: () => `
+      <a-cylinder class="solid" radius="0.5" height="1.2" color="#5FAE63" opacity="0.9" transparent="true"></a-cylinder>
+      <a-entity class="wire" geometry="primitive: cylinder; radius:0.505; height:1.205" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
+        <a-text value="รัศมี r" align="center" color="#fbbf24" width="1.6" position="0.55 -0.5 0.2"></a-text>
+        <a-text value="ความสูง h" align="center" color="#93c5fd" width="1.6" position="-0.65 0 0"></a-text>
+      </a-entity>`,
+    faces: null, edges: null, vertices: null,
+    faceNote: "2 ฐานวงกลม + ผิวโค้งด้านข้าง 1 ผิว (ไม่มีจุดยอด)",
+    formulaTitle: "ทรงกระบอก (Cylinder)",
+    formulas: [
+      ["พื้นที่ฐาน (B)", "B = πr²"],
+      ["พื้นที่ผิวด้านข้าง (L)", "L = 2πrh"],
+      ["พื้นที่ผิวทั้งหมด (S)", "S = 2πr(r+h)"],
+      ["ปริมาตร (V)", "V = πr²h"],
+    ],
+    description: `ทรงกระบอกมีฐาน 2 ฐานเป็นวงกลมขนาดเท่ากันวางขนานกัน และมีผิวด้านข้างเป็นผิวโค้งเชื่อมต่อระหว่างฐานทั้งสอง ระยะห่างระหว่างฐานเรียกว่าความสูง`,
+    examples: "กระป๋องน้ำอัดลม, แก้วน้ำ, ถังเก็บน้ำ, ท่อประปา",
+    hasNet: false
+  },
+
+  cone: {
+    th: "ทรงกรวย", color: "#E0C24C",
+    build: () => `
+      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" color="#E0C24C" opacity="0.9" transparent="true"></a-cone>
+      <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.605; radiusTop:0; height:1.205" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
+        <a-text value="จุดยอด (Apex)" align="center" color="#fbbf24" width="1.8" position="0 0.7 0"></a-text>
+        <a-text value="รัศมี r / ความสูงเอียง l" align="center" color="#93c5fd" width="2.2" position="0.6 -0.2 0.3"></a-text>
+      </a-entity>`,
+    faces: null, edges: null, vertices: 1,
+    faceNote: "1 ฐานวงกลม + ผิวโค้งด้านข้าง 1 ผิว + จุดยอด 1 จุด",
+    formulaTitle: "ทรงกรวย (Cone)",
+    formulas: [
+      ["พื้นที่ฐาน (B)", "B = πr²"],
+      ["พื้นที่ผิวด้านข้าง (L)", "L = πrl"],
+      ["พื้นที่ผิวทั้งหมด (S)", "S = πr(r+l)"],
+      ["ปริมาตร (V)", "V = (1⁄3)πr²h"],
+      ["ความสูงเอียง (l)", "l = √(r² + h²)"],
+    ],
+    description: `ทรงกรวยมีฐานเป็นวงกลม 1 ฐาน และมีจุดยอดเพียง 1 จุดอยู่เหนือฐาน โดยผิวด้านข้างเป็นผิวโค้งเชื่อมจากขอบวงกลมของฐานไปยังจุดยอด`,
+    examples: "กรวยจราจร, กรวยไอศกรีม, หมวกงานเลี้ยง, กรวยกระดาษ",
+    hasNet: false
+  },
+
+  sphere: {
+    th: "ทรงกลม", color: "#DD6B6B",
+    build: () => `
+      <a-sphere class="solid" radius="0.65" color="#DD6B6B" opacity="0.9" transparent="true"></a-sphere>
+      <a-entity class="wire" geometry="primitive: sphere; radius:0.655" material="wireframe:true; color:#fff"></a-entity>
+      <a-entity class="labels">
+        <a-text value="รัศมี r" align="center" color="#fbbf24" width="1.6" position="0.5 0 0.4"></a-text>
+        <a-text value="เส้นผ่านศูนย์กลาง d = 2r" align="center" color="#93c5fd" width="2.4" position="0 -0.85 0"></a-text>
+      </a-entity>`,
+    faces: null, edges: null, vertices: null,
+    faceNote: "มีผิวโค้งต่อเนื่องเพียงผิวเดียว ไม่มีหน้า ขอบ หรือจุดยอด",
+    formulaTitle: "ทรงกลม (Sphere)",
+    formulas: [
+      ["พื้นที่ผิว (SA)", "SA = 4πr²"],
+      ["ปริมาตร (V)", "V = (4⁄3)πr³"],
+    ],
+    description: `ทรงกลมมีผิวโค้งต่อเนื่องเพียงผิวเดียว ทุกจุดบนผิวอยู่ห่างจากจุดศูนย์กลางเป็นระยะทางเท่ากัน เรียกระยะนี้ว่ารัศมี`,
+    examples: "ลูกฟุตบอล, ลูกปิงปอง, ลูกแก้ว, ดาวเคราะห์",
+    hasNet: false
+  },
+};
+
+const shapeOrder = ["cube","hexPrism","pyramid","cylinder","cone","sphere"];
+let currentShape = "cube";
+let labelsOn = true;
+let arMode = false;
+
+/* ==================================================================
+   BUILD SHAPE TABS
+   ================================================================== */
+const tabsEl = document.getElementById('shapeTabs');
+shapeOrder.forEach(id => {
+  const b = document.createElement('button');
+  b.className = 'shapeTab' + (id === currentShape ? ' active' : '');
+  b.textContent = SHAPES[id].th;
+  b.dataset.id = id;
+  b.onclick = () => selectShape(id);
+  tabsEl.appendChild(b);
+});
+
+function selectShape(id) {
+  currentShape = id;
+  document.querySelectorAll('.shapeTab').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  renderModel();
+  resetTransform();
+  // update net button availability
+  const btnNet = document.getElementById('btnNet');
+  btnNet.disabled = !SHAPES[id].hasNet;
+  // if sheet is open, refresh its content to match new shape
+  if (sheet.classList.contains('open') && sheet.dataset.kind) {
+    openContentFor(sheet.dataset.kind);
+  }
+}
+
+function renderModel() {
+  const group = document.getElementById('modelGroup');
+  group.innerHTML = SHAPES[currentShape].build();
+  applyLabelsVisibility();
+}
+
+/* ==================================================================
+   GESTURE CONTROLS — drag to rotate, pinch/wheel to zoom (no auto-rotate)
+   ================================================================== */
+const gestureLayer = document.getElementById('gestureLayer');
+const modelGroup = () => document.getElementById('modelGroup');
+let rotX = 10, rotY = -20, scale = 1;
+let dragging = false, lastX = 0, lastY = 0;
+let pinchStartDist = null, pinchStartScale = 1;
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function applyTransform() {
+  const g = modelGroup();
+  if (!g) return;
+  g.setAttribute('rotation', `${rotX} ${rotY} 0`);
+  g.setAttribute('scale', `${scale} ${scale} ${scale}`);
+}
+
+function resetTransform() {
+  rotX = 10; rotY = -20; scale = 1;
+  applyTransform();
+}
+
+function dist(t0, t1) {
+  return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+}
+
+gestureLayer.addEventListener('pointerdown', e => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  gestureLayer.setPointerCapture(e.pointerId);
+  hideHintSoon();
+});
+gestureLayer.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  rotY += dx * 0.4;
+  rotX = clamp(rotX + dy * 0.4, -80, 80);
+  applyTransform();
+});
+window.addEventListener('pointerup', () => { dragging = false; });
+
+gestureLayer.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const d = dist(e.touches[0], e.touches[1]);
+    if (pinchStartDist == null) { pinchStartDist = d; pinchStartScale = scale; }
+    else {
+      scale = clamp(pinchStartScale * (d / pinchStartDist), 0.4, 2.5);
+      applyTransform();
+    }
+  }
+}, { passive: false });
+gestureLayer.addEventListener('touchend', e => {
+  if (e.touches.length < 2) pinchStartDist = null;
+});
+
+gestureLayer.addEventListener('wheel', e => {
+  e.preventDefault();
+  scale = clamp(scale - e.deltaY * 0.0012, 0.4, 2.5);
+  applyTransform();
+}, { passive: false });
+
+function hideHintSoon() {
+  const hint = document.getElementById('gestureHint');
+  hint.style.opacity = '0';
+  setTimeout(() => { hint.remove(); }, 500);
+}
+
+/* ==================================================================
+   LABELS TOGGLE
+   ================================================================== */
+function applyLabelsVisibility() {
+  const g = modelGroup();
+  const labelsEl = g.querySelector('.labels');
+  if (labelsEl) labelsEl.setAttribute('visible', labelsOn);
+}
+document.getElementById('btnLabels').onclick = (e) => {
+  labelsOn = !labelsOn;
+  applyLabelsVisibility();
+  e.currentTarget.classList.toggle('active', labelsOn);
+};
+
+/* ==================================================================
+   AR MODE TOGGLE (camera requested lazily, only on demand)
+   ================================================================== */
+const video = document.getElementById('camFeed');
+const studioBg = document.getElementById('studioBg');
+const loader = document.getElementById('loader');
+const loaderText = document.getElementById('loaderText');
+const retryBtn = document.getElementById('retryBtn');
+const cancelArBtn = document.getElementById('cancelArBtn');
+const modeBtn = document.getElementById('modeBtn');
+
+let currentStream = null;
+
+async function enterArMode() {
+  loaderText.innerHTML = '📷 กำลังขอสิทธิ์ใช้กล้อง...<br/><span style="font-size:12px;opacity:.7">กรุณากด Allow เมื่อเบราว์เซอร์ถามสิทธิ์กล้อง</span>';
+  retryBtn.style.display = 'none';
+  cancelArBtn.style.display = 'none';
+  loader.style.display = 'flex';
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }, audio: false
+    });
+    video.srcObject = currentStream;
+    await video.play();
+    video.style.display = 'block';
+    studioBg.style.display = 'none';
+    arMode = true;
+    modeBtn.classList.add('active');
+    modeBtn.textContent = '🖥️';
+    loader.style.display = 'none';
+  } catch (err) {
+    console.error('Camera error:', err);
+    loaderText.innerHTML = '❌ เปิดกล้องไม่สำเร็จ<br/><span style="font-size:12px;opacity:.8">' +
+      (err.message || err.name) +
+      '<br/>ตรวจสอบว่าอนุญาตสิทธิ์กล้องแล้ว และเปิดผ่าน localhost หรือ HTTPS' +
+      '<br/>(หน้าพรีวิวในแชทของ Claude จะเปิดกล้องไม่ได้ ต้องรันผ่าน Live Server ในเบราว์เซอร์จริง)</span>';
+    retryBtn.style.display = 'inline-block';
+    cancelArBtn.style.display = 'inline-block';
+  }
+}
+
+function exitArMode() {
+  if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+  currentStream = null;
+  video.style.display = 'none';
+  studioBg.style.display = 'block';
+  arMode = false;
+  modeBtn.classList.remove('active');
+  modeBtn.textContent = '🎥';
+  loader.style.display = 'none';
+}
+
+modeBtn.onclick = () => { arMode ? exitArMode() : enterArMode(); };
+retryBtn.onclick = enterArMode;
+cancelArBtn.onclick = exitArMode;
+
+/* ==================================================================
+   BOTTOM SHEET CONTENT (formula / description / net / help)
+   ================================================================== */
+const sheet = document.getElementById('sheet');
+const sheetBody = document.getElementById('sheetBody');
+
+function openSheet(html, kind) {
+  sheetBody.innerHTML = html;
+  sheet.dataset.kind = kind;
+  sheet.classList.add('open');
+}
+document.getElementById('sheetClose').onclick = () => sheet.classList.remove('open');
+
+function openContentFor(kind) {
+  const s = SHAPES[currentShape];
+  if (kind === 'formula') {
+    let rows = s.formulas.map(f => `<h3>${f[0]}</h3><div class="formula">${f[1]}</div>`).join('');
+    openSheet(`<h2>📐 สูตรคำนวณ — ${s.formulaTitle}</h2>${rows}`, 'formula');
+  } else if (kind === 'info') {
+    const countLine = (s.faces !== null)
+      ? `<ul><li>หน้า (Face) — ${s.faces} หน้า</li><li>ขอบ (Edge) — ${s.edges} ขอบ</li><li>จุดยอด (Vertex) — ${s.vertices} จุด</li></ul>`
+      : `<p>${s.faceNote}</p>`;
+    openSheet(`<h2>ℹ️ ${s.th}</h2><p>${s.description}</p><h3>องค์ประกอบ</h3>${countLine}<h3>ตัวอย่างในชีวิตประจำวัน</h3><p>${s.examples}</p>`, 'info');
+  } else if (kind === 'net') {
+    if (!s.hasNet) return;
+    openSheet(`<h2>📄 รูปคลี่ (Net) — ${s.th}</h2><div class="netbox">${s.netSvg}</div><p style="margin-top:10px">${s.netNote}</p>`, 'net');
+  } else if (kind === 'help') {
+    openSheet(`
+      <h2>❓ คำแนะนำการใช้งาน</h2>
+      <h3>การควบคุมโมเดล</h3>
+      <ul>
+        <li>ลากนิ้ว/เมาส์ 1 จุด → หมุนโมเดล</li>
+        <li>บีบนิ้ว 2 นิ้ว (มือถือ) หรือเลื่อนล้อเมาส์ (คอม) → ซูมเข้า-ออก</li>
+        <li>แตะปุ่ม "ป้ายกำกับ" เพื่อโชว์/ซ่อนชื่อส่วนประกอบของรูปทรง</li>
+        <li>เลือกรูปทรงที่ต้องการได้จากแถบด้านบน</li>
+      </ul>
+      <h3>โหมด AR (🎥)</h3>
+      <p>กดปุ่มรูปกล้องมุมบนขวาเพื่อเปิดกล้องดูรูปทรงซ้อนทับภาพจริง โมเดลจะลอยอยู่หน้ากล้องตามตำแหน่งที่ตั้งไว้ (ยังไม่ยึดกับพื้นผิวจริงในโลก)</p>
+      <h3>ข้อควรระวังการใช้งาน AR</h3>
+      <ul>
+        <li>ต้องอนุญาตให้เว็บไซต์เข้าถึงกล้องของอุปกรณ์</li>
+        <li>ต้องเปิดผ่าน HTTPS หรือ localhost เท่านั้น มิเช่นนั้นเบราว์เซอร์จะบล็อกกล้อง</li>
+        <li>ควรใช้งานในที่ที่มีแสงสว่างเพียงพอเพื่อภาพที่ชัดเจน</li>
+        <li>ถือกล้อง/อุปกรณ์ให้นิ่งพอสมควรขณะดูโมเดล</li>
+      </ul>`, 'help');
+  }
+}
+
+document.getElementById('btnFormula').onclick = () => openContentFor('formula');
+document.getElementById('btnInfo').onclick = () => openContentFor('info');
+document.getElementById('btnNet').onclick = () => openContentFor('net');
+document.getElementById('helpBtn').onclick = () => openContentFor('help');
+
+/* ==================================================================
+   INIT
+   ================================================================== */
+renderModel();
+document.getElementById('btnNet').disabled = !SHAPES[currentShape].hasNet;
+applyTransform();
+</script>
+
+</body>
+</html>
