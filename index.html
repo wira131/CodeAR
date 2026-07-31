@@ -197,7 +197,7 @@ const SHAPES = {
   cube: {
     th: "ลูกบาศก์", color: "#7EA6D8",
     build: () => `
-      <a-box class="solid" width="1" height="1" depth="1" color="#7EA6D8" opacity="0.9" transparent="true"></a-box>
+      <a-box class="solid" width="1" height="1" depth="1" material="color:#7EA6D8; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-box>
       <a-entity class="wire" geometry="primitive: box; width:1.005; height:1.005; depth:1.005" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="หน้า (Face)\\n6 หน้า" align="center" color="#86efac" width="2" position="0 0.55 0.52"></a-text>
@@ -237,7 +237,7 @@ const SHAPES = {
   hexPrism: {
     th: "ปริซึมหกเหลี่ยม", color: "#D2A25A",
     build: () => `
-      <a-cylinder class="solid" segments="6" radius="0.6" height="1.1" color="#D2A25A" opacity="0.9" transparent="true"></a-cylinder>
+      <a-cylinder class="solid" segments="6" radius="0.6" height="1.1" material="color:#D2A25A; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cylinder>
       <a-entity class="wire" geometry="primitive: cylinder; segments:6; radius:0.605; height:1.105" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานหกเหลี่ยม (Base)" align="center" color="#86efac" width="2" position="0 -0.65 0"></a-text>
@@ -278,7 +278,7 @@ const SHAPES = {
   pyramid: {
     th: "พีระมิด", color: "#A98BD1",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" color="#A98BD1" opacity="0.9" transparent="true"></a-cone>
+      <a-cone class="solid" radius-bottom="0.75" radius-top="0" segments-radial="4" height="1" rotation="0 45 0" material="color:#A98BD1; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.755; radiusTop:0; segmentsRadial:4; height:1.005" rotation="0 45 0" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานสี่เหลี่ยมจัตุรัส" align="center" color="#86efac" width="2" position="0 -0.55 0"></a-text>
@@ -315,7 +315,7 @@ const SHAPES = {
   cylinder: {
     th: "ทรงกระบอก", color: "#5FAE63",
     build: () => `
-      <a-cylinder class="solid" radius="0.5" height="1.2" color="#5FAE63" opacity="0.9" transparent="true"></a-cylinder>
+      <a-cylinder class="solid" radius="0.5" height="1.2" material="color:#5FAE63; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cylinder>
       <a-entity class="wire" geometry="primitive: cylinder; radius:0.505; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -339,7 +339,7 @@ const SHAPES = {
   cone: {
     th: "ทรงกรวย", color: "#E0C24C",
     build: () => `
-      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" color="#E0C24C" opacity="0.9" transparent="true"></a-cone>
+      <a-cone class="solid" radius-bottom="0.6" radius-top="0" height="1.2" material="color:#E0C24C; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-cone>
       <a-entity class="wire" geometry="primitive: cone; radiusBottom:0.605; radiusTop:0; height:1.205" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="ฐานวงกลม (Base)" align="center" color="#86efac" width="2" position="0 -0.7 0"></a-text>
@@ -364,7 +364,7 @@ const SHAPES = {
   sphere: {
     th: "ทรงกลม", color: "#DD6B6B",
     build: () => `
-      <a-sphere class="solid" radius="0.65" color="#DD6B6B" opacity="0.9" transparent="true"></a-sphere>
+      <a-sphere class="solid" radius="0.65" material="color:#DD6B6B; opacity:0.9; transparent:true; metalness:0; roughness:1; side:double"></a-sphere>
       <a-entity class="wire" geometry="primitive: sphere; radius:0.655" material="wireframe:true; color:#fff"></a-entity>
       <a-entity class="labels">
         <a-text value="รัศมี r" align="center" color="#fbbf24" width="1.6" position="0.5 0 0.4"></a-text>
