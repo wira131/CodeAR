@@ -130,7 +130,7 @@
   #controls {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     display: flex; justify-content: center; gap: 10px;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    padding: 16px 16px calc(50px + env(safe-area-inset-bottom));
     background: linear-gradient(0deg, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 0));
     flex-wrap: wrap;
   }
@@ -203,7 +203,8 @@
 <a-scene embedded vr-mode-ui="enabled: false"
          renderer="alpha: true; precision: medium; antialias: true;"
          background="transparent: true">
-  <a-entity id="rig" camera look-controls-enabled="false" wasd-controls-enabled="false" position="0 0 0">
+  <!-- ตั้งค่า rig ให้พร้อมรองรับ look-controls แบบ dynamic -->
+  <a-entity id="rig" camera look-controls="enabled: false; magicWindowTrackingEnabled: true; touchEnabled: false;" position="0 0 0">
     <a-entity id="modelGroup" position="0 -0.2 -3.5" rotation="15 -25 0" scale="1 1 1"></a-entity>
   </a-entity>
   
@@ -244,7 +245,7 @@
 <!-- ================= TOP BAR ================= -->
 <div id="topbar" class="glass-panel">
   <div id="titleRow">
-    <h1>WebAR Geometry</h1>
+    <h1>Geometry Learning with WEB AR</h1>
     <div style="display:flex; gap:8px;">
       <button class="iconBtn" id="helpBtn" title="คำแนะนำการใช้งาน">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m.08 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
@@ -273,7 +274,6 @@
 <script>
 /* ==================================================================
    SHAPE DATA 
-   ปรับแต่งป้ายกำกับ (Labels) ให้เป็นสไตล์มินิมอลตามแบบรูปภาพอ้างอิง
    ================================================================== */
 const matProps = "roughness: 0.35; metalness: 0.15; side: double;";
 const wireProps = "wireframe: true; color: #ffffff; transparent: true; opacity: 0.12;";
@@ -632,7 +632,7 @@ document.getElementById('btnLabels').onclick = (e) => {
 };
 
 /* ==================================================================
-   AR MODE TOGGLE
+   AR MODE TOGGLE (Gyroscope Tracking Enabled)
    ================================================================== */
 const video = document.getElementById('camFeed');
 const studioBg = document.getElementById('studioBg');
@@ -645,11 +645,20 @@ const modeBtn = document.getElementById('modeBtn');
 let currentStream = null;
 
 async function enterArMode() {
-  loaderText.innerHTML = '📷 กำลังขอสิทธิ์ใช้กล้อง...<br/><span style="font-size:12px;opacity:.7;font-weight:300;">กรุณากด Allow เมื่อเบราว์เซอร์ถามสิทธิ์กล้อง</span>';
+  loaderText.innerHTML = '📷 กำลังขอสิทธิ์ใช้กล้องและเซนเซอร์...<br/><span style="font-size:12px;opacity:.7;font-weight:300;">กรุณากด Allow เมื่อเบราว์เซอร์ถามสิทธิ์</span>';
   retryBtn.style.display = 'none';
   cancelArBtn.style.display = 'none';
   loader.style.display = 'flex';
   try {
+    // 1. ขอสิทธิ์ DeviceOrientation สำหรับ iOS 13+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const permissionState = await DeviceOrientationEvent.requestPermission();
+      if (permissionState !== 'granted') {
+        throw new Error('ไม่ได้รับสิทธิ์เข้าถึงเซนเซอร์การหมุน (Gyroscope)');
+      }
+    }
+
+    // 2. ขอสิทธิ์ใช้งานกล้องหลัง
     currentStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } }, audio: false
     });
@@ -660,9 +669,16 @@ async function enterArMode() {
     arMode = true;
     modeBtn.classList.add('active');
     loader.style.display = 'none';
+
+    // 3. เปิดการทำงานของ Gyro Control ให้กล้อง 3D หมุนตามมือถือ
+    const rig = document.getElementById('rig');
+    if (rig) {
+      rig.setAttribute('look-controls', 'enabled', true);
+    }
+
   } catch (err) {
-    console.error('Camera error:', err);
-    loaderText.innerHTML = '❌ เปิดกล้องไม่สำเร็จ<br/><span style="font-size:12px;opacity:.8;font-weight:300;">' +
+    console.error('AR Mode Error:', err);
+    loaderText.innerHTML = '❌ เปิดโหมด AR ไม่สำเร็จ<br/><span style="font-size:12px;opacity:.8;font-weight:300;">' +
       (err.message || err.name) + '</span>';
     retryBtn.style.display = 'inline-block';
     cancelArBtn.style.display = 'inline-block';
@@ -677,6 +693,13 @@ function exitArMode() {
   arMode = false;
   modeBtn.classList.remove('active');
   loader.style.display = 'none';
+
+  // ปิด Gyro Control และตั้งค่ามุมมองกล้องกลับมาที่จุดเดิม
+  const rig = document.getElementById('rig');
+  if (rig) {
+    rig.setAttribute('look-controls', 'enabled', false);
+    rig.setAttribute('rotation', '0 0 0');
+  }
 }
 
 modeBtn.onclick = () => { arMode ? exitArMode() : enterArMode(); };
@@ -719,7 +742,7 @@ function openContentFor(kind) {
         <li>แตะปุ่ม "ป้ายกำกับ" เพื่อโชว์/ซ่อนชื่อส่วนประกอบ</li>
       </ul>
       <h3>โหมด AR</h3>
-      <p>กดเพื่อเปิด AR โมเดลจะแสดงซ้อนทับสภาพแวดล้อมจริง</p>`, 'help');
+      <p>กดปุ่ม "โหมด AR" เพื่อเปิดกล้องและระบบ Gyroscope โมเดลจะถูกลอยอยู่ในพิกัดทิศทางจริง สามารถหันกล้องมือถือส่องดูรอบโมเดลได้</p>`, 'help');
   }
 }
 
