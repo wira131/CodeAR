@@ -20,10 +20,8 @@
     touch-action: none;
   }
 
-  /* Hide VR button created by A-Frame */
   .a-enter-vr-button { display: none !important; }
 
-  /* ---------- Backgrounds ---------- */
   #camFeed {
     position: fixed; inset: 0; width: 100%; height: 100%;
     object-fit: cover; z-index: 0; display: none;
@@ -38,14 +36,12 @@
     z-index: 1; background: transparent !important;
   }
 
-  /* Gesture & UI Layer */
   #gestureLayer {
     position: fixed; inset: 0; z-index: 5;
     touch-action: none;
     pointer-events: auto;
   }
 
-  /* ---------- Glassmorphism Panels ---------- */
   .glass-panel {
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(12px);
@@ -53,7 +49,6 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* ---------- Top bar ---------- */
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 20;
     padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
@@ -86,7 +81,6 @@
   .shapeTab:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
   .shapeTab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 500; }
 
-  /* ---------- Custom Equation Panel ---------- */
   #eqPanel {
     position: fixed; left: 16px; right: 16px; z-index: 19;
     bottom: calc(100px + env(safe-area-inset-bottom));
@@ -126,7 +120,6 @@
   #eqError { font-size: 12px; color: #f87171; margin-top: 8px; display: none; }
   #eqHint { font-size: 11px; color: #64748b; margin-top: 12px; line-height: 1.5; }
 
-  /* ---------- Hint ---------- */
   #gestureHint {
     position: fixed; top: 105px; left: 50%; transform: translateX(-50%);
     z-index: 15; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);
@@ -135,7 +128,6 @@
     text-align: center; line-height: 1.4;
   }
 
-  /* ---------- Bottom control bar ---------- */
   #controls {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     display: flex; justify-content: center; gap: 10px;
@@ -154,14 +146,12 @@
   .btn.active { background: #3b82f6; border-color: #60a5fa; color: #fff; box-shadow: 0 0 12px rgba(59, 130, 246, 0.3); }
   .btn[disabled] { opacity: 0.3; cursor: not-allowed; background: transparent; border-color: transparent; }
 
-  /* AR Button Design จากระบบสุริยะตัวอย่าง [source: 2] */
   #modeBtn {
     background: linear-gradient(135deg, #ff0080, #7928ca);
     color: white; border: none; font-weight: bold;
     box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
   }
 
-  /* ---------- Bottom sheet ---------- */
   #sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     max-height: 75%; overflow-y: auto;
@@ -191,7 +181,6 @@
     margin: 0 auto 16px;
   }
 
-  /* ---------- Loading overlay ---------- */
   #loader {
     height: 100%; width: 100%; position: fixed; inset: 0;
     background-color: rgba(2, 6, 23, 0.95); z-index: 999;
@@ -205,11 +194,9 @@
 </style>
 
 <script>
-  // ==================================================================
-  // AR CONTROLLER & SCALE MANAGER (อ้างอิงและปรับปรุงจากตัวอย่างระบบสุริยะ [source: 2])
-  // ==================================================================
-  
-  // จัดการการซูมด้วยการ Pinch (2 นิ้ว)
+  window.arModeActive = false;
+  window.currentScaleVal = 1;
+
   AFRAME.registerComponent('ar-scale-manager', {
     schema: { min: {default: 0.2}, max: {default: 5} },
     init: function() {
@@ -236,7 +223,7 @@
           newScale = Math.min(Math.max(newScale, this.data.min), this.data.max);
           if (this.targetEl) {
             this.targetEl.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
-            window.currentScaleVal = newScale; // Update global state
+            window.currentScaleVal = newScale;
           }
         }
       }, {passive: false});
@@ -245,7 +232,6 @@
     }
   });
 
-  // จัดการการเข้า/ออกจากโหมด AR สลับระหว่างกล้องจริงและพื้นหลังจำลอง
   AFRAME.registerComponent('ar-controller', {
     init: function () {
       const sceneEl = this.el;
@@ -258,13 +244,12 @@
       sceneEl.addEventListener('enter-vr', () => {
         if (sceneEl.is('ar-mode')) {
           if(studioBg) studioBg.style.display = 'none';
-          if(camFeed) camFeed.style.display = 'none'; // ใช้ WebXR Pass-through
+          if(camFeed) camFeed.style.display = 'none';
           if(modeBtn) modeBtn.textContent = 'ออกจาก AR';
           if(ground) ground.setAttribute('visible', 'true');
           
-          // ตั้งตำแหน่งเริ่มต้นให้อยู่หน้ากล้อง 2.5 เมตร บนพื้น
           if(anchor) {
-            anchor.setAttribute('position', '0 0 -2.5');
+            anchor.setAttribute('position', '0 -0.5 -2.5');
           }
           window.arModeActive = true;
         }
@@ -274,26 +259,26 @@
         if(studioBg) studioBg.style.display = 'block';
         if(modeBtn) modeBtn.textContent = '✨ เข้าสู่โหมด AR';
         if(ground) ground.setAttribute('visible', 'false');
+        
         if(anchor) {
-          anchor.setAttribute('position', '0 0 -3');
+          anchor.setAttribute('position', '0 1.2 -2.5');
         }
         window.arModeActive = false;
       });
     }
   });
 
-  // ==================================================================
-  // WORLD TRACKING, FOLLOW USER & FACE USER CONTROLLER (Tick Loop)
-  // ==================================================================
-  let mixer = null; // GLB Animation Mixer
+  let mixer = null;
   const clock = new AFRAME.THREE.Clock();
-  const FOLLOW_THRESHOLD = 3.0; // หากห่างเกิน 3 เมตรจะเริ่มเดินตาม
-  const MOVE_SPEED = 0.035;     // ความเร็วในการ Lerp
+  const FOLLOW_THRESHOLD = 3.0;
+  const MOVE_SPEED = 0.035;
 
   AFRAME.registerComponent('world-tracking-controller', {
     tick: function () {
       const delta = clock.getDelta();
-      if (mixer) mixer.update(delta); // เล่น Animation GLB ถ้ามี
+      if (mixer) mixer.update(delta);
+
+      if (!window.arModeActive) return; // ทำงานเฉพาะตอนเปิด AR เท่านั้น เพื่อไม่ให้กวนโหมดธรรมดา
 
       const cameraEl = document.getElementById('mainCamera');
       const anchorEl = document.getElementById('worldAnchor');
@@ -307,25 +292,22 @@
       camera3D.getWorldPosition(camPos);
       anchor3D.getWorldPosition(anchorPos);
 
-      // 1. ระบบ Face User: หันหน้าโมเดลเข้าหากล้องเฉพาะแนวแกน Y (ไม่เอียงระนาบ)
       const targetLookAt = new AFRAME.THREE.Vector3(camPos.x, anchorPos.y, camPos.z);
       anchor3D.lookAt(targetLookAt);
 
-      // 2. ระบบ Follow User: เมื่อเดินห่างเกินระยะ 3 เมตร
       const distXZ = Math.hypot(camPos.x - anchorPos.x, camPos.z - anchorPos.z);
 
       if (distXZ > FOLLOW_THRESHOLD) {
-        // คำนวณจุดเป้าหมายให้โมเดลรักษาระยะห่างประมาณ 1.8 เมตรจากกล้อง
         const dirToCam = new AFRAME.THREE.Vector3().subVectors(camPos, anchorPos);
         dirToCam.y = 0;
         dirToCam.normalize();
 
         const followTarget = new AFRAME.THREE.Vector3()
           .copy(camPos)
-          .sub(dirToCam.multiplyScalar(1.8));
-        followTarget.y = 0; // วางราบกับระดับพื้น
+          .sub(dirToCam.multiplyScalar(2.0));
+        
+        followTarget.y = -0.5;
 
-        // ย้ายตำแหน่งด้วย Vector3.lerp() เพื่อความนุ่มนวล ไม่วาร์ป
         anchor3D.position.lerp(followTarget, MOVE_SPEED);
       }
     }
@@ -346,7 +328,6 @@
 </div>
 
 <!-- ================= A-FRAME SCENE ================= -->
-<!-- เปิดใช้งาน WebXR World Tracking (hit-test, local-floor) และ Overlay ตามตัวอย่าง [source: 2] -->
 <a-scene embedded
          ar-controller
          ar-scale-manager
@@ -355,15 +336,15 @@
          renderer="colorManagement: true; antialias: true; alpha: true; precision: high; shadowMapEnabled: true;"
          webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #gestureLayer">
 
-    <!-- Camera Rig: แยกโมเดลออกจากกล้องเพื่อให้เดินหมุนรอบได้ 360 องศา -->
-    <a-entity id="rig" position="0 1.6 0">
+    <!-- Camera Rig -->
+    <a-entity id="rig" position="0 0 0">
       <a-camera id="mainCamera" look-controls="enabled: false; magicWindowTrackingEnabled: true; touchEnabled: false;"></a-camera>
     </a-entity>
 
-    <!-- Ground Plane: พื้นสำหรับรองรับเงา (Shadow Receiver) ในโหมด AR -->
+    <!-- Ground Plane -->
     <a-plane
         id="ground"
-        position="0 0 0"
+        position="0 -1.5 0"
         rotation="-90 0 0"
         width="100"
         height="100"
@@ -372,16 +353,16 @@
         material="color: #1e293b; opacity: 0.25; transparent: true;">
     </a-plane>
 
-    <!-- World Anchor System: พิกัดโลกจริงสำหรับวางโมเดล แยกอิสระจากกล้อง -->
-    <a-entity id="worldAnchor" position="0 0 -3">
+    <!-- World Anchor System: ตั้งค่าให้อยู่ตรงกลางสายตาพอดีที่ Y = 1.2 -->
+    <a-entity id="worldAnchor" position="0 1.2 -2.5">
 
-        <!-- Model Group: กลุ่มโมเดลสำหรับการหมุนและขยายด้วย Gesture -->
+        <!-- Model Group -->
         <a-entity id="modelGroup" rotation="15 -25 0" scale="1 1 1">
         </a-entity>
 
     </a-entity>
   
-  <!-- Lighting with Shadow Casting -->
+  <!-- Lighting -->
   <a-entity light="type: directional; color: #ffffff; intensity: 1.2; castShadow: true; shadowMapHeight: 1024; shadowMapWidth: 1024;" position="2 5 3"></a-entity>
   <a-entity light="type: directional; color: #a5b4fc; intensity: 0.4" position="-2 2 -2"></a-entity>
   <a-entity light="type: ambient; color: #ffffff; intensity: 0.6"></a-entity>
@@ -508,11 +489,7 @@ const shapeOrder = ["cube","custom"];
 let currentShape = "cube";
 let labelsOn = true;
 let isExploded = false;
-window.currentScaleVal = 1;
 
-/* ==================================================================
-   BUILD SHAPE TABS
-   ================================================================== */
 const tabsEl = document.getElementById('shapeTabs');
 shapeOrder.forEach(id => {
   const b = document.createElement('button');
@@ -566,7 +543,6 @@ function renderModel() {
   setupGLBAnimations();
 }
 
-/* Setup GLB Animation Mixer */
 function setupGLBAnimations() {
   const group = document.getElementById('modelGroup');
   const gltfEntity = group.querySelector('[gltf-model]');
@@ -596,9 +572,6 @@ function applyExplodedView() {
   applyLabelsVisibility();
 }
 
-/* ==================================================================
-   GESTURE CONTROLS & ANCHOR PLACEMENT
-   ================================================================== */
 const gestureLayer = document.getElementById('gestureLayer');
 const modelGroup = () => document.getElementById('modelGroup');
 let rotX = 15, rotY = -25;
@@ -618,9 +591,7 @@ function resetTransform() {
   applyTransform();
 }
 
-// Drag gesture to rotate model
 gestureLayer.addEventListener('pointerdown', e => {
-  // หากคลิกโดนส่วน UI ให้ยกเลิกการหมุน
   if (e.target.closest('#topbar, #controls, #sheet, #eqPanel')) return;
   dragging = true; lastX = e.clientX; lastY = e.clientY;
   gestureLayer.setPointerCapture(e.pointerId);
@@ -638,16 +609,16 @@ gestureLayer.addEventListener('pointermove', e => {
 
 window.addEventListener('pointerup', () => { dragging = false; });
 
-// Wheel Zoom for Desktop
 gestureLayer.addEventListener('wheel', e => {
   e.preventDefault();
   window.currentScaleVal = clamp(window.currentScaleVal - e.deltaY * 0.0015, 0.2, 5.0);
   applyTransform();
 }, { passive: false });
 
-// Touch/Click Placement สำหรับโหมด AR
+// ทำงานเฉพาะตอนเปิดโหมด AR เท่านั้น เพื่อป้องกันไม่ให้โหมดปกติหลุดตำแหน่ง
 gestureLayer.addEventListener('click', (e) => {
   if (e.target.closest('#topbar, #controls, #sheet, #eqPanel')) return;
+  if (!window.arModeActive) return;
 
   const cameraEl = document.getElementById('mainCamera');
   const anchorEl = document.getElementById('worldAnchor');
@@ -656,15 +627,15 @@ gestureLayer.addEventListener('click', (e) => {
   const camera3D = cameraEl.object3D;
   const anchor3D = anchorEl.object3D;
 
-  // คำนวณจุดวาง 1.5 เมตรตรงหน้ากล้อง บนระดับพื้น
   const dir = new AFRAME.THREE.Vector3();
   camera3D.getWorldDirection(dir);
-  dir.multiplyScalar(-1.5);
+  dir.multiplyScalar(-2.0);
 
   const targetPos = new AFRAME.THREE.Vector3();
   camera3D.getWorldPosition(targetPos);
   targetPos.add(dir);
-  targetPos.y = 0; // ตั้งระดับพื้นดิน
+
+  targetPos.y = -0.5;
 
   anchor3D.position.copy(targetPos);
 });
@@ -677,9 +648,6 @@ function hideHintSoon() {
   }
 }
 
-/* ==================================================================
-   LABELS TOGGLE
-   ================================================================== */
 function applyLabelsVisibility() {
   if (isExploded) return;
   const g = modelGroup();
@@ -692,9 +660,6 @@ document.getElementById('btnLabels').onclick = (e) => {
   e.currentTarget.classList.toggle('active', labelsOn);
 };
 
-/* ==================================================================
-   AR MODE TOGGLE ( WebXR Mode อ้างอิงจากระบบสุริยะ [source: 2] )
-   ================================================================== */
 const modeBtn = document.getElementById('modeBtn');
 
 modeBtn.onclick = () => {
@@ -702,14 +667,10 @@ modeBtn.onclick = () => {
   if (scene.is('ar-mode')) {
     scene.exitVR();
   } else {
-    // เรียกเข้าสู่โหมด AR ด้วย WebXR Standard
     scene.enterAR();
   }
 };
 
-/* ==================================================================
-   BOTTOM SHEET CONTENT
-   ================================================================== */
 const sheet = document.getElementById('sheet');
 const sheetBody = document.getElementById('sheetBody');
 
@@ -758,9 +719,6 @@ document.getElementById('btnNet').onclick = (e) => {
 };
 document.getElementById('helpBtn').onclick = () => openContentFor('help');
 
-/* ==================================================================
-   CUSTOM EQUATION → 3D SURFACE GENERATOR
-   ================================================================== */
 function generateIsosurface(fn, bound, res) {
   const dim = res + 1;
   const step = (2 * bound) / res;
@@ -937,7 +895,6 @@ document.getElementById('eqPanelClose').onclick = () => {
   document.getElementById('eqPanel').classList.remove('open');
 };
 
-/* Initial Execution */
 renderModel();
 document.getElementById('btnNet').disabled = !SHAPES[currentShape].hasNet;
 applyTransform();
