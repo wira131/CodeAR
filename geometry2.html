@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
 <!-- ใช้ A-Frame 1.6.0 รองรับ WebXR เต็มรูปแบบ -->
 <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -93,13 +92,37 @@
   #eqPanel.open { display: block; animation: slideUp 0.3s ease; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   
-  #eqPanelHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  #eqPanelHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   #eqPanelHead strong { font-size: 14px; color: #60a5fa; font-weight: 500; }
   #eqPanelClose {
     background: transparent; border: none; color: #94a3b8;
     width: 28px; height: 28px; font-size: 16px;
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
+
+  #presetLabel { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px; }
+  #presetRow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .presetPill {
+    background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1; font-size: 12.5px; font-weight: 400; padding: 7px 12px; border-radius: 16px;
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .presetPill:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+  .presetPill.active { background: #0ea5e9; border-color: #38bdf8; color: #fff; font-weight: 500; box-shadow: 0 0 10px rgba(14, 165, 233, 0.35); }
+
+  #eqSelectHint {
+    font-size: 12.5px; color: #93c5fd; background: rgba(59,130,246,0.12);
+    border: 1px dashed rgba(96,165,250,0.4); border-radius: 10px;
+    padding: 10px 12px; margin-top: 12px; line-height: 1.5; display: block;
+  }
+
+  #eqAxisSection { display: none; margin-top: 16px; }
+  #eqAxisSection.open { display: block; animation: slideUp 0.25s ease; }
+  #eqAxisSection .selectedShapeTag {
+    display: inline-block; font-size: 12px; color: #38bdf8; background: rgba(14,165,233,0.12);
+    border: 1px solid rgba(56,189,248,0.35); border-radius: 12px; padding: 4px 10px; margin-bottom: 12px;
+  }
+
   #eqPanel label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 6px; }
   #eqPanel input[type=text], #eqPanel input[type=number] {
     width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); 
@@ -107,6 +130,7 @@
     font-family: monospace; outline: none; transition: border 0.2s ease;
   }
   #eqPanel input[type=text]:focus, #eqPanel input[type=number]:focus { border-color: #3b82f6; }
+  #eqPanel input.invalid { border-color: #f87171 !important; background: rgba(248, 113, 113, 0.1); }
   #eqRow { display: flex; gap: 12px; margin-bottom: 4px; }
   #eqRow > div { flex: 1; }
   
@@ -171,7 +195,6 @@
     padding: 12px 16px; border-radius: 8px; font-size: 14px;
     margin: 8px 0; color: #fff; font-family: monospace;
   }
-  #sheet .netbox { background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 16px; margin-top: 12px; }
   #sheetClose {
     position: absolute; top: 16px; right: 16px; color: #94a3b8;
     font-size: 20px; cursor: pointer; background: none; border: none; padding: 4px;
@@ -372,27 +395,38 @@
   <div id="gestureHint">👆 ลากเพื่อหมุน · บีบ/เลื่อนล้อเมาส์เพื่อซูม<br/><small style="opacity:0.85; font-size:11px;">(ในโหมด AR: แตะหน้าจอเพื่อวาง/ย้ายตำแหน่งโมเดลบนพื้นจริง)</small></div>
 </div>
 
-<!-- ================= CUSTOM EQUATION PANEL ================= -->
+<!-- ================= CUSTOM MODEL PANEL ================= -->
 <div id="eqPanel" class="glass-panel">
   <div id="eqPanelHead">
-    <strong>📐 สมการพื้นผิว 3 มิติ</strong>
+    <strong id="eqPanelTitle">📐 สร้างโมเดล 3 มิติ</strong>
     <button id="eqPanelClose" title="ปิด">✕</button>
   </div>
-  <label>f(x, y, z) = 0 หรือ LHS = RHS</label>
-  <input type="text" id="eqInput" value="x^2 + y^2 + z^2 - 9" autocomplete="off" autocapitalize="off" spellcheck="false" />
-  <div id="eqRow">
-    <div>
-      <label>ขอบเขต ±</label>
-      <input type="number" id="eqBound" value="3" step="0.5" min="0.5" max="10" />
+
+  <label id="presetLabel">ขั้นที่ 1 — เลือกรูปทรงสำเร็จรูปก่อน</label>
+  <div id="presetRow"></div>
+  <div id="eqSelectHint">👆 กรุณาเลือกรูปทรงด้านบนก่อน จากนั้นระบบจะเปิดให้คุณกำหนดขนาดแกน X, Y, Z ของรูปทรงนั้นเอง</div>
+
+  <div id="eqAxisSection">
+    <span class="selectedShapeTag" id="selectedShapeTag"></span>
+    <label style="margin-top:2px;">ขั้นที่ 2 — กำหนดขนาดแกน X Y Z ของรูปทรงที่เลือก</label>
+    <div id="eqRow">
+      <div>
+        <label>แกน X</label>
+        <input type="number" id="eqX" value="3" step="0.5" min="1" max="10" />
+      </div>
+      <div>
+        <label>แกน Y</label>
+        <input type="number" id="eqY" value="3" step="0.5" min="1" max="10" />
+      </div>
+      <div>
+        <label>แกน Z</label>
+        <input type="number" id="eqZ" value="3" step="0.5" min="1" max="10" />
+      </div>
     </div>
-    <div>
-      <label>ความละเอียด</label>
-      <input type="number" id="eqRes" value="26" step="2" min="10" max="40" />
-    </div>
+    <button id="eqGenBtn">⚙️ สร้างโมเดล</button>
+    <div id="eqError"></div>
+    <div id="eqHint">กำหนดความยาวของแกน X, Y และ Z (1-10 หน่วย) ของรูปทรงที่เลือกไว้ แล้วกด "สร้างโมเดล" ระบบจะสร้างรูปทรงสามมิติให้ตามขนาดที่กำหนดทันที</div>
   </div>
-  <button id="eqGenBtn">⚙️ สร้างโมเดล</button>
-  <div id="eqError"></div>
-  <div id="eqHint">ตัวอย่าง: ทรงกลม x^2+y^2+z^2-9 · ทอรัส (sqrt(x^2+y^2)-2)^2+z^2-0.5 · พาราโบลอยด์ z-(x^2+y^2-3)</div>
 </div>
 
 <!-- ================= TOP BAR ================= -->
@@ -426,79 +460,194 @@
 
 <script>
 /* ==================================================================
-   SHAPE DATA 
+   1) "ลูกบาศก์" — รูปทรงตัวอย่างขนาดคงที่ ไม่ต้องกำหนดแกนเอง
+   2) "สร้างโมเดลเรขาคณิต 3 มิติ" — ขั้นที่ 1 เลือกรูปทรงสำเร็จรูปก่อน
+      ขั้นที่ 2 จึงกำหนดแกน X Y Z เอง แล้วโมเดลจะแสดงเป็นรูปทรงที่เลือกไว้
    ================================================================== */
-const matProps = "roughness: 0.35; metalness: 0.15; side: double;";
+function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('th-TH'); }
 
-const SHAPES = {
-  cube: {
-    th: "ลูกบาศก์", color: "#60a5fa",
-    build: () => `
-      <a-entity class="assembled-model">
-        <a-entity class="solid"
-          gltf-model="url(textures/cude.glb)"
-          scale="1 1 1"
-          shadow="cast: true; receive: true">
-        </a-entity>
-      </a-entity>
-      <a-entity class="exploded-model" visible="false">
-        <a-plane width="1" height="1" position="0 0 0.65" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-        <a-plane width="1" height="1" position="0 0 -0.65" rotation="0 180 0" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-        <a-plane width="1" height="1" position="0 0.65 0" rotation="-90 0 0" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-        <a-plane width="1" height="1" position="0 -0.65 0" rotation="90 0 0" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-        <a-plane width="1" height="1" position="0.65 0 0" rotation="0 90 0" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-        <a-plane width="1" height="1" position="-0.65 0 0" rotation="0 -90 0" material="color:#ffffff; ${matProps}" shadow="cast: true; receive: true"></a-plane>
-      </a-entity>
-      <a-entity class="labels">
-        <a-text value="(Edge)\n12" align="center" color="#94a3b8" width="3.5" position="0 1.5 1.3" scale="1 1 1"></a-text>
-        <a-text value="(Face)\n6" align="center" color="#ffffff" width="4" position="0 0.1 1.31" scale="1.1 1.1 1.1"></a-text>
-        <a-text value="(Vertex)\n8" align="center" color="#fbbf24" width="3.5" position="1.45 1.2 1.3" scale="1 1 1"></a-text>
-        <a-text value="a =" align="center" color="#93c5fd" width="3.5" position="-1.45 -0.5 1.3" scale="1 1 1"></a-text>
-      </a-entity>`,
-    faces: 6, edges: 12, vertices: 8,
-    formulaTitle: "ลูกบาศก์ (Cube)",
-    formulas: [
-      ["พื้นที่ของหน้า (A<sub>face</sub>)", "A<sub>face</sub> = a²"],
-      ["พื้นที่ผิวทั้งหมด (S)", "S = 6a²"],
-      ["ปริมาตร (V)", "V = a³"],
-      ["เส้นทแยงมุมของหน้า (d<sub>f</sub>)", "d<sub>f</sub> = a√2"],
-      ["เส้นทแยงมุมภายใน (d<sub>s</sub>)", "d<sub>s</sub> = a√3"],
-    ],
-    description: `ลูกบาศก์คือรูปทรงสามมิติที่ทุกด้านเป็นสี่เหลี่ยมจัตุรัสขนาดเท่ากัน มี 6 หน้า 12 ขอบ 8 จุดยอด ทุกมุมเป็นมุมฉาก 90 องศา`,
-    examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
-    hasNet: true,
-    netSvg: `<svg viewBox="0 0 200 120" width="100%"><g fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"><rect x="40" y="0" width="40" height="40"/><rect x="0" y="40" width="40" height="40"/><rect x="40" y="40" width="40" height="40"/><rect x="80" y="40" width="40" height="40"/><rect x="120" y="40" width="40" height="40"/><rect x="40" y="80" width="40" height="40"/></g><g font-size="10" fill="#1e3a8a" text-anchor="middle" font-family="sans-serif"><text x="60" y="24">บน</text><text x="20" y="64">ซ้าย</text><text x="60" y="64">หน้า</text><text x="100" y="64">ขวา</text><text x="140" y="64">หลัง</text><text x="60" y="104">ล่าง</text></g></svg>`,
-    netNote: "เมื่อกางลูกบาศก์ออกจะได้สี่เหลี่ยมจัตุรัส 6 รูปต่อกันเป็นรูปไม้กางเขน"
-  },
-
-  custom: {
-    th: "สร้างโมเดลเรขาคณิต 3 มิติ", color: "#38bdf8",
-    isCustom: true,
-    build: () => ``,
-    faces: null, edges: null, vertices: null,
-    faceNote: "รูปทรงที่สร้างจากสมการไม่มีจำนวนหน้า/ขอบ/จุดยอดตายตัว",
-    formulaTitle: "สร้างโมเดล 3 มิติเอง",
-    formulas: [],
-    description: `พิมพ์สมการพื้นผิวในรูป f(x, y, z) = 0 (หรือ LHS = RHS) แล้วกด "สร้างโมเดล" ระบบจะคำนวณและวาดพื้นผิวจากสมการนั้นให้ทันที`,
-    examples: "ทรงกลม: x²+y²+z²=9 · ทอรัส: (√(x²+y²)-2)²+z²=0.5",
-    hasNet: false
-  },
+/* ---------- 1) ลูกบาศก์ตัวอย่าง (ขนาดคงที่) ---------- */
+const CUBE_SHAPE = {
+  th: "ลูกบาศก์", color: "#e2e8f0",
+  faces: 6, edges: 12, vertices: 8,
+  formulaTitle: "ลูกบาศก์ (Cube)",
+  formulas: [
+    ["พื้นที่ของหน้า (A_face)", "A_face = a²"],
+    ["พื้นที่ผิวทั้งหมด (S)", "S = 6a²"],
+    ["ปริมาตร (V)", "V = a³"],
+    ["เส้นทแยงมุมของหน้า (d_f)", "d_f = a√2"],
+    ["เส้นทแยงมุมภายใน (d_s)", "d_s = a√3"],
+  ],
+  description: `ลูกบาศก์คือรูปทรงสามมิติที่ทุกด้านเป็นสี่เหลี่ยมจัตุรัสขนาดเท่ากัน มี 6 หน้า 12 ขอบ 8 จุดยอด ทุกมุมเป็นมุมฉาก 90 องศา`,
+  examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
 };
 
-const shapeOrder = ["cube","custom"];
-let currentShape = "cube";
-let labelsOn = true;
-let isExploded = false;
+/* ---------- 2) รูปทรงสำเร็จรูปสำหรับโหมด "สร้างโมเดลเรขาคณิต 3 มิติ" ---------- */
+const PRESETS = {
+  box: {
+    th: "กล่องสี่เหลี่ยม", color: "#60a5fa", geometryType: "box", flatShading: true,
+    faces: 6, edges: 12, vertices: 8,
+    formulaTitle: "กล่องสี่เหลี่ยมมุมฉาก / ลูกบาศก์",
+    formulas: (x, y, z) => ([
+      ["พื้นที่ผิวทั้งหมด (S)", `S = 2(xy + yz + zx) = 2(${fmt(x*y)} + ${fmt(y*z)} + ${fmt(z*x)}) = ${fmt(2*(x*y+y*z+z*x))} หน่วย²`],
+      ["ปริมาตร (V)", `V = x·y·z = ${fmt(x)} × ${fmt(y)} × ${fmt(z)} = ${fmt(x*y*z)} หน่วย³`],
+    ]),
+    description: `กล่องสี่เหลี่ยมมุมฉากมี 6 หน้าเป็นสี่เหลี่ยม 12 ขอบ 8 จุดยอด ทุกมุมเป็นมุมฉาก 90 องศา หากตั้งค่าแกน X = Y = Z จะได้ลูกบาศก์ที่สมบูรณ์`,
+    examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
+  },
+  hexPrism: {
+    th: "ปริซึมหกเหลี่ยม", color: "#34d399", geometryType: "hexPrism", flatShading: true,
+    faces: 8, edges: 18, vertices: 12,
+    formulaTitle: "ปริซึมหกเหลี่ยมด้านเท่า",
+    formulas: (x, y, z) => {
+      const s = x / 2, h = y;
+      const baseArea = (3 * Math.sqrt(3) / 2) * s * s;
+      return [
+        ["ด้านฐาน (s) และความสูง (h)", `s = X/2 = ${fmt(s)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["พื้นที่ฐาน (A)", `A = (3√3/2)s² = ${fmt(baseArea)} หน่วย²`],
+        ["ปริมาตร (V)", `V = A×h = ${fmt(baseArea)} × ${fmt(h)} = ${fmt(baseArea*h)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = 2A + 6sh = ${fmt(2*baseArea + 6*s*h)} หน่วย²`],
+      ];
+    },
+    description: `ปริซึมหกเหลี่ยมมีฐานเป็นรูปหกเหลี่ยมด้านเท่า 2 ฐาน และผิวข้าง 6 ผืน สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นหกเหลี่ยมสม่ำเสมอ) แกน Y คือความสูงของปริซึม`,
+    examples: "ดินสอไม้ (บางแบบ), น็อตหกเหลี่ยม, เสาหกเหลี่ยมตกแต่ง",
+  },
+  pyramid: {
+    th: "พีระมิด", color: "#fbbf24", geometryType: "pyramid", flatShading: true,
+    faces: 5, edges: 8, vertices: 5,
+    formulaTitle: "พีระมิดฐานสี่เหลี่ยมจัตุรัส",
+    formulas: (x, y, z) => {
+      const a = x, h = y;
+      const slant = Math.sqrt((a/2)**2 + h**2);
+      const baseArea = a * a;
+      const surface = baseArea + 2 * a * slant;
+      const volume = (1/3) * baseArea * h;
+      return [
+        ["ด้านฐาน (a) และความสูง (h)", `a = X = ${fmt(a)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ความสูงเอียง (l)", `l = √((a/2)² + h²) = ${fmt(slant)} หน่วย`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = a² + 2al = ${fmt(surface)} หน่วย²`],
+        ["ปริมาตร (V)", `V = (1/3)a²h = ${fmt(volume)} หน่วย³`],
+      ];
+    },
+    description: `พีระมิดฐานสี่เหลี่ยมมีฐานเป็นสี่เหลี่ยมจัตุรัส 1 ฐาน และหน้าสามเหลี่ยม 4 หน้าบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นสี่เหลี่ยมจัตุรัส) แกน Y คือความสูงของพีระมิด`,
+    examples: "พีระมิดอียิปต์, หลังคาทรงพีระมิด, ยอดตึกบางแบบ",
+  },
+  cylinder: {
+    th: "ทรงกระบอก", color: "#a78bfa", geometryType: "cylinder", flatShading: false,
+    faces: 3, edges: 2, vertices: 0,
+    formulaTitle: "ทรงกระบอก",
+    formulas: (x, y, z) => {
+      const r = x / 2, h = y;
+      const volume = Math.PI * r * r * h;
+      const surface = 2 * Math.PI * r * (r + h);
+      return [
+        ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ปริมาตร (V)", `V = πr²h = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = 2πr(r+h) = ${fmt(surface)} หน่วย²`],
+      ];
+    },
+    description: `ทรงกระบอกมีฐานเป็นวงกลม 2 ฐานขนานกัน และผิวข้างโค้งเรียบ สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกระบอก`,
+    examples: "กระป๋องน้ำอัดลม, ท่อ PVC, แก้วน้ำทรงกระบอก",
+  },
+  cone: {
+    th: "ทรงกรวย", color: "#fb7185", geometryType: "cone", flatShading: false,
+    faces: 2, edges: 1, vertices: 1,
+    formulaTitle: "ทรงกรวย",
+    formulas: (x, y, z) => {
+      const r = x / 2, h = y;
+      const slant = Math.sqrt(r*r + h*h);
+      const volume = (1/3) * Math.PI * r * r * h;
+      const surface = Math.PI * r * (r + slant);
+      return [
+        ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ความสูงเอียง (l)", `l = √(r² + h²) = ${fmt(slant)} หน่วย`],
+        ["ปริมาตร (V)", `V = (1/3)πr²h = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = πr(r+l) = ${fmt(surface)} หน่วย²`],
+      ];
+    },
+    description: `ทรงกรวยมีฐานเป็นวงกลม 1 ฐาน และผิวข้างโค้งเรียวไปบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกรวย`,
+    examples: "ไอศกรีมโคน, หมวกปาร์ตี้, กรวยจราจร",
+  },
+  sphere: {
+    th: "ทรงกลม / ทรงรี", color: "#38bdf8", geometryType: "sphere", flatShading: false,
+    faces: 1, edges: 0, vertices: 0,
+    formulaTitle: "ทรงกลม / ทรงรี",
+    formulas: (x, y, z) => {
+      const a = x/2, b = y/2, c = z/2;
+      const volume = (4/3) * Math.PI * a * b * c;
+      const isSphere = (Math.abs(x-y) < 0.001 && Math.abs(y-z) < 0.001);
+      if (isSphere) {
+        const r = a;
+        return [
+          ["รัศมี (r)", `r = X/2 = ${fmt(r)} หน่วย`],
+          ["ปริมาตร (V)", `V = (4/3)πr³ = ${fmt(volume)} หน่วย³`],
+          ["พื้นที่ผิวทั้งหมด (S)", `S = 4πr² = ${fmt(4*Math.PI*r*r)} หน่วย²`],
+        ];
+      }
+      const p = 1.6075;
+      const surfaceApprox = 4 * Math.PI * Math.pow((Math.pow(a*b,p) + Math.pow(a*c,p) + Math.pow(b*c,p)) / 3, 1/p);
+      return [
+        ["ครึ่งแกน (semi-axis) a, b, c", `a = X/2 = ${fmt(a)}, b = Y/2 = ${fmt(b)}, c = Z/2 = ${fmt(c)} หน่วย`],
+        ["ปริมาตร (V)", `V = (4/3)πabc = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิว โดยประมาณ (S)", `S ≈ ${fmt(surfaceApprox)} หน่วย² (สูตรประมาณของ Knud Thomsen)`],
+      ];
+    },
+    description: `ทรงกลม/ทรงรีคือรูปทรงพื้นผิวโค้งต่อเนื่อง หากกำหนดแกน X, Y, Z เท่ากันทั้งหมดจะได้ทรงกลมสมบูรณ์ หากตั้งไม่เท่ากันจะกลายเป็นทรงรี (Ellipsoid) รูปทรงนี้ไม่มีรูปคลี่ (net) เนื่องจากพื้นผิวโค้งต่อเนื่องไม่สามารถคลี่ออกเป็นระนาบได้`,
+    examples: "ลูกบอล, ลูกโลก, ไข่, ลูกรักบี้",
+  },
+};
+const presetOrder = ["box", "hexPrism", "pyramid", "cylinder", "cone", "sphere"];
 
+const shapeOrder = ["cube", "custom"];
+const shapeLabels = { cube: "ลูกบาศก์", custom: "สร้างโมเดลเรขาคณิต 3 มิติ" };
+
+let currentShape = "cube";       // "cube" | "custom"
+let currentPreset = null;        // ต้องเลือกก่อนถึงจะกำหนดแกนได้ (ขั้นที่ 1)
+let labelsOn = true;
+const customAxis = { x: 3, y: 3, z: 3 };
+
+/* ---------- แท็บหลัก ---------- */
 const tabsEl = document.getElementById('shapeTabs');
 shapeOrder.forEach(id => {
   const b = document.createElement('button');
   b.className = 'shapeTab' + (id === currentShape ? ' active' : '');
-  b.textContent = SHAPES[id].th;
+  b.textContent = shapeLabels[id];
   b.dataset.id = id;
   b.onclick = () => selectShape(id);
   tabsEl.appendChild(b);
 });
+
+/* ---------- แถบเลือกรูปทรงสำเร็จรูป (อยู่ในแผง eqPanel) — ขั้นที่ 1 ---------- */
+const presetRowEl = document.getElementById('presetRow');
+presetOrder.forEach(id => {
+  const b = document.createElement('button');
+  b.className = 'presetPill';
+  b.textContent = PRESETS[id].th;
+  b.dataset.id = id;
+  b.onclick = () => selectPreset(id);
+  presetRowEl.appendChild(b);
+});
+
+function updateEqPanelTitle() {
+  if (currentPreset) {
+    document.getElementById('eqPanelTitle').textContent = `📐 สร้างโมเดล — ${PRESETS[currentPreset].th}`;
+  } else {
+    document.getElementById('eqPanelTitle').textContent = `📐 สร้างโมเดล 3 มิติ`;
+  }
+}
+
+function netSupported() {
+  if (currentShape === 'cube') return true;
+  if (currentShape === 'custom') return !!currentPreset && currentPreset !== 'sphere';
+  return false;
+}
+
+function updateActionButtonsState() {
+  const hasModel = (currentShape === 'cube') || (currentShape === 'custom' && !!currentPreset);
+  document.getElementById('btnFormula').disabled = !hasModel;
+  document.getElementById('btnInfo').disabled = !hasModel;
+  document.getElementById('btnNet').disabled = !netSupported();
+}
 
 function selectShape(id) {
   currentShape = id;
@@ -506,70 +655,384 @@ function selectShape(id) {
     el.classList.toggle('active', el.dataset.id === id);
   });
 
-  if (isExploded) {
-    isExploded = false;
-    document.getElementById('btnNet').classList.remove('active');
-  }
+  snapCloseNetIfOpen();
 
-  const isCustom = !!SHAPES[id].isCustom;
-  document.getElementById('eqPanel').classList.toggle('open', isCustom);
-
-  const btnNet = document.getElementById('btnNet');
-  const btnFormula = document.getElementById('btnFormula');
-  const btnLabels = document.getElementById('btnLabels');
-
-  if (isCustom) {
-    document.getElementById('modelGroup').innerHTML = '';
-    btnNet.disabled = true;
-    btnFormula.disabled = true;
-    btnLabels.disabled = true;
+  if (id === 'cube') {
+    document.getElementById('eqPanel').classList.remove('open');
+    renderCubeShape();
   } else {
-    btnNet.disabled = !SHAPES[id].hasNet;
-    btnFormula.disabled = false;
-    btnLabels.disabled = false;
-    renderModel();
-    resetTransform();
+    updateEqPanelTitle();
+    document.getElementById('eqPanel').classList.add('open');
+    if (currentPreset) {
+      // เคยเลือกรูปทรงไว้แล้วในเซสชันนี้ — แสดงขั้นที่ 2 ต่อเลย
+      document.querySelectorAll('.presetPill').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === currentPreset);
+      });
+      document.getElementById('eqSelectHint').style.display = 'none';
+      document.getElementById('eqAxisSection').classList.add('open');
+      document.getElementById('selectedShapeTag').textContent = '✓ รูปทรงที่เลือก: ' + PRESETS[currentPreset].th;
+      renderCustomShape();
+    } else {
+      // ยังไม่ได้เลือกรูปทรง — ต้องเลือกก่อน (ขั้นที่ 1)
+      document.querySelectorAll('.presetPill').forEach(el => el.classList.remove('active'));
+      document.getElementById('eqSelectHint').style.display = 'block';
+      document.getElementById('eqAxisSection').classList.remove('open');
+      clearModelForSelection();
+    }
   }
 
+  updateActionButtonsState();
+  resetTransform();
   if (sheet.classList.contains('open') && sheet.dataset.kind) {
     openContentFor(sheet.dataset.kind);
   }
 }
 
-function renderModel() {
-  const group = document.getElementById('modelGroup');
-  group.innerHTML = SHAPES[currentShape].build();
-  applyLabelsVisibility();
-  setupGLBAnimations();
-}
+function selectPreset(id) {
+  currentPreset = id;
+  document.querySelectorAll('.presetPill').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  document.getElementById('eqSelectHint').style.display = 'none';
+  document.getElementById('eqAxisSection').classList.add('open');
+  document.getElementById('selectedShapeTag').textContent = '✓ รูปทรงที่เลือก: ' + PRESETS[id].th;
 
-function setupGLBAnimations() {
-  const group = document.getElementById('modelGroup');
-  const gltfEntity = group.querySelector('[gltf-model]');
-  if (gltfEntity) {
-    gltfEntity.addEventListener('model-loaded', (e) => {
-      const model = e.detail.model;
-      if (model && model.animations && model.animations.length > 0) {
-        mixer = new AFRAME.THREE.AnimationMixer(model);
-        model.animations.forEach((clip) => {
-          mixer.clipAction(clip).play();
-        });
-      }
-    });
+  document.getElementById('eqX').value = customAxis.x;
+  document.getElementById('eqY').value = customAxis.y;
+  document.getElementById('eqZ').value = customAxis.z;
+  updateEqPanelTitle();
+  clearAxisErrors();
+
+  // ขั้นที่ 2: แสดงโมเดลของรูปทรงที่เลือกไว้ทันที (ด้วยขนาดแกนปัจจุบัน)
+  renderCustomShape();
+  updateActionButtonsState();
+  resetTransform();
+  if (sheet.classList.contains('open') && sheet.dataset.kind) {
+    openContentFor(sheet.dataset.kind);
   }
 }
 
-function applyExplodedView() {
-  const assembled = document.querySelector('.assembled-model');
-  const exploded = document.querySelector('.exploded-model');
-  if (!assembled || !exploded) return;
+function clearModelForSelection() {
+  snapCloseNetIfOpen();
+  netPanelsData = null;
+  const group = document.getElementById('modelGroup');
+  group.innerHTML = '';
+  const hintEntity = document.createElement('a-entity');
+  hintEntity.innerHTML = `<a-text value="👆 เลือกรูปทรงก่อน" align="center" color="#94a3b8" width="3.6" position="0 0 0"></a-text>`;
+  group.appendChild(hintEntity);
+}
 
-  assembled.setAttribute('visible', !isExploded);
-  exploded.setAttribute('visible', isExploded);
+/* ------------ Unit geometry builders (size 1, centered at origin) ------------ */
+function createUnitGeometry(type) {
+  const THREE = AFRAME.THREE;
+  switch (type) {
+    case 'box':
+      return new THREE.BoxGeometry(1, 1, 1);
+    case 'hexPrism':
+      return new THREE.CylinderGeometry(0.5, 0.5, 1, 6, 1, false);
+    case 'pyramid': {
+      const g = new THREE.ConeGeometry(0.5, 1, 4, 1, false);
+      g.rotateY(Math.PI / 4);
+      return g;
+    }
+    case 'cylinder':
+      return new THREE.CylinderGeometry(0.5, 0.5, 1, 48, 1, false);
+    case 'cone':
+      return new THREE.ConeGeometry(0.5, 1, 48, 1, false);
+    case 'sphere':
+      return new THREE.SphereGeometry(0.5, 48, 32);
+    default:
+      return new THREE.BoxGeometry(1, 1, 1);
+  }
+}
 
-  const wire = assembled.querySelector('.wire');
-  if (wire) wire.setAttribute('visible', !isExploded);
-  applyLabelsVisibility();
+/* ---------- 1) วาดลูกบาศก์ตัวอย่าง (ขนาดคงที่ ไม่ผูกกับแกน) ---------- */
+function renderCubeShape() {
+  const THREE = AFRAME.THREE;
+  const group = document.getElementById('modelGroup');
+  group.innerHTML = '';
+
+  const geometry = new THREE.BoxGeometry(2, 2, 2);
+  const material = new THREE.MeshPhysicalMaterial({
+    color: CUBE_SHAPE.color, roughness: 0.4, metalness: 0.1,
+    clearcoat: 0.25, clearcoatRoughness: 0.3, side: THREE.DoubleSide,
+  });
+  const entity = document.createElement('a-entity');
+  entity.classList.add('solid-model');
+  group.appendChild(entity);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  entity.setObject3D('mesh', mesh);
+
+  const labelsEntity = document.createElement('a-entity');
+  labelsEntity.classList.add('labels');
+  labelsEntity.setAttribute('visible', labelsOn);
+  labelsEntity.innerHTML = `
+    <a-text value="(Edge)\n12" align="center" color="#94a3b8" width="3.5" position="0 1.5 1.3"></a-text>
+    <a-text value="(Face)\n6" align="center" color="#ffffff" width="4" position="0 0.1 1.31"></a-text>
+    <a-text value="(Vertex)\n8" align="center" color="#fbbf24" width="3.5" position="1.45 1.2 1.3"></a-text>
+  `;
+  group.appendChild(labelsEntity);
+
+  const netGroupEntity = document.createElement('a-entity');
+  netGroupEntity.id = 'netGroup';
+  netGroupEntity.setAttribute('visible', 'false');
+  group.appendChild(netGroupEntity);
+
+  netMode = false;
+  updateNetButtonUI();
+  netPanelsData = getNetPanels('box', 2, 2, 2, CUBE_SHAPE.color);
+}
+
+/* ---------- 2) วาดรูปทรงสำเร็จรูปจากแกน X Y Z ที่ผู้ใช้กำหนด ---------- */
+function buildCustomShape(presetId, x, y, z) {
+  const THREE = AFRAME.THREE;
+  const preset = PRESETS[presetId];
+  const group = document.getElementById('modelGroup');
+  group.innerHTML = '';
+
+  const geometry = createUnitGeometry(preset.geometryType);
+  geometry.scale(x, y, z);
+  geometry.computeVertexNormals();
+
+  const material = new THREE.MeshPhysicalMaterial({
+    color: preset.color,
+    roughness: 0.32,
+    metalness: 0.18,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.25,
+    flatShading: preset.flatShading,
+    side: THREE.DoubleSide,
+  });
+
+  const entity = document.createElement('a-entity');
+  entity.classList.add('solid-model');
+  group.appendChild(entity);
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  entity.setObject3D('mesh', mesh);
+
+  const labelsEntity = document.createElement('a-entity');
+  labelsEntity.classList.add('labels');
+  labelsEntity.setAttribute('visible', labelsOn);
+  labelsEntity.innerHTML = `
+    <a-text value="X = ${fmt(x)}" align="center" color="#93c5fd" width="3.2" position="0 ${-(y/2) - 0.35} ${(z/2) + 0.15}"></a-text>
+    <a-text value="Y = ${fmt(y)}" align="center" color="#86efac" width="3.2" position="${(x/2) + 0.55} 0 ${(z/2) + 0.15}"></a-text>
+    <a-text value="Z = ${fmt(z)}" align="center" color="#fda4af" width="3.2" position="0 ${-(y/2) - 0.6} 0" rotation="-90 0 0"></a-text>
+  `;
+  group.appendChild(labelsEntity);
+
+  const netGroupEntity = document.createElement('a-entity');
+  netGroupEntity.id = 'netGroup';
+  netGroupEntity.setAttribute('visible', 'false');
+  group.appendChild(netGroupEntity);
+
+  netMode = false;
+  updateNetButtonUI();
+  netPanelsData = getNetPanels(presetId, x, y, z, preset.color);
+}
+
+function renderCustomShape() {
+  if (!currentPreset) return;
+  buildCustomShape(currentPreset, customAxis.x, customAxis.y, customAxis.z);
+}
+
+/* ==================================================================
+   รูปคลี่ (Net) — คลี่โมเดล 3 มิติจริงออกเป็นชิ้นส่วนแบนในฉาก แทนที่จะ
+   แสดงภาพประกอบ SVG แบบเดิม
+   ================================================================== */
+let netMode = false;
+let netAnimating = false;
+let netPanelsData = null;
+
+function triangleShapeGeometry(base, height) {
+  const THREE = AFRAME.THREE;
+  const shape = new THREE.Shape();
+  shape.moveTo(-base / 2, 0);
+  shape.lineTo(base / 2, 0);
+  shape.lineTo(0, height);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+function sectorShapeGeometry(radius, angle) {
+  const THREE = AFRAME.THREE;
+  const shape = new THREE.Shape();
+  const start = -Math.PI / 2 - angle / 2;
+  const end = -Math.PI / 2 + angle / 2;
+  shape.moveTo(0, 0);
+  shape.absarc(0, 0, radius, start, end, false);
+  shape.lineTo(0, 0);
+  return new THREE.ShapeGeometry(shape, 64);
+}
+
+function panelGeometry(p) {
+  const THREE = AFRAME.THREE;
+  switch (p.type) {
+    case 'rect': return new THREE.PlaneGeometry(p.w, p.h);
+    case 'hex': return new THREE.CircleGeometry(p.r, 6);
+    case 'circle': return new THREE.CircleGeometry(p.r, 48);
+    case 'tri': return triangleShapeGeometry(p.w, p.h);
+    case 'sector': return sectorShapeGeometry(p.radius, p.angle);
+    default: return new THREE.PlaneGeometry(0.5, 0.5);
+  }
+}
+
+/* คำนวณตำแหน่งชิ้นส่วนของรูปคลี่ (net) จากขนาดจริงของรูปทรง */
+function getNetPanels(presetId, x, y, z, colorOverride) {
+  const gap = 0.2;
+  const color = colorOverride || (PRESETS[presetId] ? PRESETS[presetId].color : '#e2e8f0');
+
+  if (presetId === 'box') {
+    return [
+      { type: 'rect', w: x, h: y, pos: [0, 0], color },
+      { type: 'rect', w: z, h: y, pos: [-(x/2 + gap + z/2), 0], color },
+      { type: 'rect', w: z, h: y, pos: [(x/2 + gap + z/2), 0], color },
+      { type: 'rect', w: x, h: z, pos: [0, (y/2 + gap + z/2)], color },
+      { type: 'rect', w: x, h: z, pos: [0, -(y/2 + gap + z/2)], color },
+      { type: 'rect', w: x, h: y, pos: [(x/2 + gap + z/2) + (z/2 + gap + x/2), 0], color },
+    ];
+  }
+
+  if (presetId === 'hexPrism') {
+    const s = x / 2, h = y;
+    const panels = [];
+    for (let k = 0; k < 6; k++) {
+      panels.push({ type: 'rect', w: s, h: h, pos: [(k - 2.5) * (s + gap), 0], color });
+    }
+    const firstX = (0 - 2.5) * (s + gap);
+    panels.push({ type: 'hex', r: s, pos: [firstX, h/2 + gap + s], color });
+    panels.push({ type: 'hex', r: s, pos: [firstX, -(h/2 + gap + s)], color });
+    return panels;
+  }
+
+  if (presetId === 'pyramid') {
+    const a = x, h = y;
+    const l = Math.sqrt((a/2)**2 + h**2);
+    return [
+      { type: 'rect', w: a, h: a, pos: [0, 0], color },
+      { type: 'tri', w: a, h: l, rotZ: 0, pos: [0, a/2 + gap], color },
+      { type: 'tri', w: a, h: l, rotZ: Math.PI, pos: [0, -(a/2 + gap)], color },
+      { type: 'tri', w: a, h: l, rotZ: Math.PI/2, pos: [-(a/2 + gap), 0], color },
+      { type: 'tri', w: a, h: l, rotZ: -Math.PI/2, pos: [(a/2 + gap), 0], color },
+    ];
+  }
+
+  if (presetId === 'cylinder') {
+    const r = x / 2, h = y;
+    const circumference = 2 * Math.PI * r;
+    return [
+      { type: 'rect', w: circumference, h: h, pos: [0, 0], color },
+      { type: 'circle', r, pos: [0, h/2 + gap + r], color },
+      { type: 'circle', r, pos: [0, -(h/2 + gap + r)], color },
+    ];
+  }
+
+  if (presetId === 'cone') {
+    const r = x / 2, h = y;
+    const l = Math.sqrt(r*r + h*h);
+    const angle = Math.min(2 * Math.PI, (2 * Math.PI * r) / l);
+    return [
+      { type: 'sector', radius: l, angle, rotZ: 0, pos: [0, 0], color },
+      { type: 'circle', r, pos: [0, -(l + gap + r)], color },
+    ];
+  }
+
+  return null; // ทรงกลม/ทรงรี ไม่มีรูปคลี่
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+function animatePanels(items, duration, onDone) {
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const e = easeOutCubic(t);
+    items.forEach(it => {
+      const sx = it.startPos[0] + (it.target[0] - it.startPos[0]) * e;
+      const sy = it.startPos[1] + (it.target[1] - it.startPos[1]) * e;
+      it.mesh.position.set(sx, sy, 0);
+    });
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else if (onDone) {
+      onDone();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function updateNetButtonUI() {
+  const btn = document.getElementById('btnNet');
+  btn.classList.toggle('active', netMode);
+  btn.textContent = netMode ? '📦 ประกอบโมเดล' : '📄 รูปคลี่';
+  btn.disabled = !netSupported();
+}
+
+function snapCloseNetIfOpen() {
+  // ปิดโหมดคลี่ทันที (ไม่มีอนิเมชัน) เวลาสลับรูปทรง/แท็บ เพื่อไม่ให้ค้างสถานะผิด
+  netMode = false;
+  netAnimating = false;
+  const group = document.getElementById('modelGroup');
+  if (!group) return;
+  const solidEntity = group.querySelector('.solid-model');
+  const netGroupEntity = group.querySelector('#netGroup');
+  const labelsEntity = group.querySelector('.labels');
+  if (solidEntity) solidEntity.setAttribute('visible', 'true');
+  if (netGroupEntity) { netGroupEntity.setAttribute('visible', 'false'); netGroupEntity.innerHTML = ''; }
+  if (labelsEntity) labelsEntity.setAttribute('visible', labelsOn);
+  updateNetButtonUI();
+}
+
+function toggleNet() {
+  if (netAnimating || !netPanelsData) return;
+  const group = document.getElementById('modelGroup');
+  const solidEntity = group.querySelector('.solid-model');
+  const netGroupEntity = group.querySelector('#netGroup');
+  const labelsEntity = group.querySelector('.labels');
+  if (!solidEntity || !netGroupEntity) return;
+
+  netMode = !netMode;
+  updateNetButtonUI();
+  netAnimating = true;
+
+  if (netMode) {
+    // สร้างชิ้นส่วนใหม่ตรงกลาง แล้วอนิเมทให้กระจายออกเป็นรูปคลี่จริง
+    netGroupEntity.innerHTML = '';
+    const items = netPanelsData.map(p => {
+      const geo = panelGeometry(p);
+      const mat = new AFRAME.THREE.MeshPhysicalMaterial({
+        color: p.color, roughness: 0.35, metalness: 0.12,
+        side: AFRAME.THREE.DoubleSide,
+      });
+      const mesh = new AFRAME.THREE.Mesh(geo, mat);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.position.set(0, 0, 0);
+      mesh.rotation.set(0, 0, p.rotZ || 0);
+      const ent = document.createElement('a-entity');
+      netGroupEntity.appendChild(ent);
+      ent.setObject3D('mesh', mesh);
+      return { mesh, startPos: [0, 0], target: p.pos };
+    });
+    solidEntity.setAttribute('visible', 'false');
+    if (labelsEntity) labelsEntity.setAttribute('visible', 'false');
+    netGroupEntity.setAttribute('visible', 'true');
+    animatePanels(items, 650, () => { netAnimating = false; });
+  } else {
+    // อนิเมทชิ้นส่วนกลับเข้าศูนย์กลาง แล้วประกอบกลับเป็นโมเดลทึบ
+    const meshes = Array.from(netGroupEntity.children).map(ent => ent.getObject3D('mesh')).filter(Boolean);
+    const items = meshes.map(mesh => ({ mesh, startPos: [mesh.position.x, mesh.position.y], target: [0, 0] }));
+    animatePanels(items, 450, () => {
+      netGroupEntity.setAttribute('visible', 'false');
+      netGroupEntity.innerHTML = '';
+      solidEntity.setAttribute('visible', 'true');
+      if (labelsEntity) labelsEntity.setAttribute('visible', labelsOn);
+      netAnimating = false;
+    });
+  }
 }
 
 const gestureLayer = document.getElementById('gestureLayer');
@@ -648,10 +1111,9 @@ function hideHintSoon() {
 }
 
 function applyLabelsVisibility() {
-  if (isExploded) return;
   const g = modelGroup();
   const labelsEl = g ? g.querySelector('.labels') : null;
-  if (labelsEl) labelsEl.setAttribute('visible', labelsOn && !isExploded);
+  if (labelsEl && !netMode) labelsEl.setAttribute('visible', labelsOn);
 }
 document.getElementById('btnLabels').onclick = (e) => {
   labelsOn = !labelsOn;
@@ -681,205 +1143,130 @@ function openSheet(html, kind) {
 document.getElementById('sheetClose').onclick = () => sheet.classList.remove('open');
 
 function openContentFor(kind) {
-  const s = SHAPES[currentShape];
+  if (kind === 'help') { openHelpSheet(); return; }
+  if (currentShape === 'cube') { openCubeContent(kind); }
+  else { openCustomContent(kind); }
+}
+
+function openCubeContent(kind) {
+  const s = CUBE_SHAPE;
   if (kind === 'formula') {
-    let rows = s.formulas.map(f => `<h3>${f[0]}</h3><div class="formula">${f[1]}</div>`).join('');
+    const rows = s.formulas.map(f => `<h3>${f[0]}</h3><div class="formula">${f[1]}</div>`).join('');
     openSheet(`<h2>📐 สูตรคำนวณ — ${s.formulaTitle}</h2>${rows}`, 'formula');
   } else if (kind === 'info') {
-    const countLine = (s.faces !== null)
-      ? `<ul><li>หน้า (Face) — ${s.faces} หน้า</li><li>ขอบ (Edge) — ${s.edges} ขอบ</li><li>จุดยอด (Vertex) — ${s.vertices} จุด</li></ul>`
-      : `<p>${s.faceNote}</p>`;
+    const countLine = `<ul><li>หน้า (Face) — ${s.faces} หน้า</li><li>ขอบ (Edge) — ${s.edges} ขอบ</li><li>จุดยอด (Vertex) — ${s.vertices} จุด</li></ul>`;
     openSheet(`<h2>ℹ️ ${s.th}</h2><p>${s.description}</p><h3>องค์ประกอบ</h3>${countLine}<h3>ตัวอย่างในชีวิตประจำวัน</h3><p>${s.examples}</p>`, 'info');
-  } else if (kind === 'net') {
-    if (!s.hasNet) return;
-    openSheet(`<h2>📄 รูปคลี่ (Net) — ${s.th}</h2><div class="netbox">${s.netSvg}</div><p style="margin-top:12px">${s.netNote}</p>`, 'net');
-  } else if (kind === 'help') {
-    openSheet(`
-      <h2>คำแนะนำการใช้งาน</h2>
-      <h3>การควบคุมโมเดล</h3>
-      <ul>
-        <li>ลากนิ้ว/เมาส์ → หมุนโมเดล</li>
-        <li>บีบนิ้ว 2 นิ้ว หรือ Scroll เมาส์ → ซูมเข้า-ออก</li>
-        <li>กดปุ่ม "ป้ายกำกับ" เพื่อเปิด/ปิดข้อความระบุส่วนประกอบ</li>
-      </ul>
-      <h3>โหมด AR & World Tracking</h3>
-      <p>กดปุ่ม "✨ เข้าสู่โหมด AR" เพื่อส่องกล้องในโลกจริง แตะพื้นที่บนหน้าจอเพื่อปักหมุดวางโมเดล คุณสามารถเดินอ้อมดูโมเดลได้ 360 องศา หากเดินถอยห่างเกิน 3 เมตร โมเดลจะค่อยๆ เดินตามคุณมาอัตโนมัติ</p>`, 'help');
   }
+}
+
+function openCustomContent(kind) {
+  if (!currentPreset) return;
+  const p = PRESETS[currentPreset];
+  const axis = customAxis;
+  if (kind === 'formula') {
+    const rows = p.formulas(axis.x, axis.y, axis.z).map(f => `<h3>${f[0]}</h3><div class="formula">${f[1]}</div>`).join('');
+    openSheet(`<h2>📐 สูตรคำนวณ — ${p.formulaTitle}</h2><p style="color:#94a3b8">คำนวณจากขนาดปัจจุบัน: X=${fmt(axis.x)}, Y=${fmt(axis.y)}, Z=${fmt(axis.z)} หน่วย</p>${rows}`, 'formula');
+  } else if (kind === 'info') {
+    const countLine = `<ul><li>หน้า (Face) — ${p.faces} หน้า</li><li>ขอบ (Edge) — ${p.edges} ขอบ</li><li>จุดยอด (Vertex) — ${p.vertices} จุด</li></ul>`;
+    openSheet(`<h2>ℹ️ ${p.th}</h2><p>${p.description}</p><h3>องค์ประกอบ</h3>${countLine}<h3>ตัวอย่างในชีวิตประจำวัน</h3><p>${p.examples}</p>`, 'info');
+  }
+}
+
+function openHelpSheet() {
+  openSheet(`
+    <h2>คำแนะนำการใช้งาน</h2>
+    <h3>เลือกรูปทรงและกำหนดขนาด</h3>
+    <ul>
+      <li>แท็บ "ลูกบาศก์" แสดงตัวอย่างรูปทรงมาตรฐานพร้อมป้ายกำกับหน้า/ขอบ/จุดยอด</li>
+      <li>แท็บ "สร้างโมเดลเรขาคณิต 3 มิติ" — ขั้นที่ 1 เลือกรูปทรงสำเร็จรูปก่อน (กล่อง, ปริซึมหกเหลี่ยม, พีระมิด, ทรงกระบอก, ทรงกรวย, ทรงกลม/ทรงรี) จากนั้นขั้นที่ 2 จึงกำหนดขนาดแกน X, Y, Z ของรูปทรงนั้น</li>
+      <li>เมื่อเลือกรูปทรงแล้ว โมเดลจะปรากฏขึ้นทันทีตามรูปทรงที่เลือก กด "⚙️ สร้างโมเดล" เพื่ออัปเดตตามขนาดที่กำหนดใหม่</li>
+    </ul>
+    <h3>การควบคุมโมเดล</h3>
+    <ul>
+      <li>ลากนิ้ว/เมาส์ → หมุนโมเดล</li>
+      <li>บีบนิ้ว 2 นิ้ว หรือ Scroll เมาส์ → ซูมเข้า-ออก</li>
+      <li>กดปุ่ม "ป้ายกำกับ" เพื่อเปิด/ปิดข้อความระบุส่วนประกอบ</li>
+      <li>กดปุ่ม "📄 รูปคลี่" เพื่อคลี่โมเดล 3 มิติจริงออกเป็นชิ้นส่วนแบน (ไม่ใช่ภาพประกอบ) กดอีกครั้งเพื่อประกอบกลับเป็นรูปทรงเดิม (ไม่รองรับทรงกลม/ทรงรี)</li>
+    </ul>
+    <h3>โหมด AR & World Tracking</h3>
+    <p>กดปุ่ม "✨ เข้าสู่โหมด AR" เพื่อส่องกล้องในโลกจริง แตะพื้นที่บนหน้าจอเพื่อปักหมุดวางโมเดล คุณสามารถเดินอ้อมดูโมเดลได้ 360 องศา หากเดินถอยห่างเกิน 3 เมตร โมเดลจะค่อยๆ เดินตามคุณมาอัตโนมัติ</p>`, 'help');
 }
 
 document.getElementById('btnFormula').onclick = () => openContentFor('formula');
 document.getElementById('btnInfo').onclick = () => openContentFor('info');
-document.getElementById('btnNet').onclick = (e) => {
-  if (SHAPES[currentShape].hasNet) {
-    isExploded = !isExploded;
-    e.currentTarget.classList.toggle('active', isExploded);
-    applyExplodedView();
-  }
-};
+document.getElementById('btnNet').onclick = () => toggleNet();
 document.getElementById('helpBtn').onclick = () => openContentFor('help');
 
-function generateIsosurface(fn, bound, res) {
-  const dim = res + 1;
-  const step = (2 * bound) / res;
-  const field = new Float32Array(dim * dim * dim);
-  const idx = (i, j, k) => i + j * dim + k * dim * dim;
+/* ------------ Axis input validation (1–10 units per axis) ------------ */
+const AXIS_MIN = 1, AXIS_MAX = 10;
+const axisInputIds = ['eqX', 'eqY', 'eqZ'];
 
-  for (let k = 0; k < dim; k++) {
-    for (let j = 0; j < dim; j++) {
-      for (let i = 0; i < dim; i++) {
-        const x = -bound + i * step;
-        const y = -bound + j * step;
-        const z = -bound + k * step;
-        let v;
-        try { v = fn(x, y, z); } catch (e) { v = NaN; }
-        field[idx(i, j, k)] = (typeof v === 'number' && isFinite(v)) ? v : 1e6;
-      }
-    }
-  }
-
-  const cornerOffset = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
-  const edgePairs = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-  const cidx = (i, j, k) => i + j * res + k * res * res;
-  const cellVert = new Int32Array(res * res * res).fill(-1);
-  const positions = [];
-
-  for (let k = 0; k < res; k++) {
-    for (let j = 0; j < res; j++) {
-      for (let i = 0; i < res; i++) {
-        let anyPos = false, anyNeg = false;
-        const cVal = new Array(8), cPos = new Array(8);
-        for (let n = 0; n < 8; n++) {
-          const o = cornerOffset[n];
-          const v = field[idx(i+o[0], j+o[1], k+o[2])];
-          cVal[n] = v;
-          cPos[n] = [-bound+(i+o[0])*step, -bound+(j+o[1])*step, -bound+(k+o[2])*step];
-          if (v >= 0) anyPos = true; else anyNeg = true;
-        }
-        if (!(anyPos && anyNeg)) continue;
-
-        let sx=0, sy=0, sz=0, count=0;
-        for (const [a,b] of edgePairs) {
-          const va = cVal[a], vb = cVal[b];
-          if ((va >= 0) !== (vb >= 0)) {
-            const t = va / (va - vb);
-            const pa = cPos[a], pb = cPos[b];
-            sx += pa[0] + t*(pb[0]-pa[0]);
-            sy += pa[1] + t*(pb[1]-pa[1]);
-            sz += pa[2] + t*(pb[2]-pa[2]);
-            count++;
-          }
-        }
-        if (count === 0) continue;
-        const vIndex = positions.length / 3;
-        positions.push(sx/count, sy/count, sz/count);
-        cellVert[cidx(i,j,k)] = vIndex;
-      }
-    }
-  }
-
-  function cellActive(i,j,k) {
-    if (i<0||j<0||k<0||i>=res||j>=res||k>=res) return -1;
-    return cellVert[cidx(i,j,k)];
-  }
-
-  const indices = [];
-  function pushQuad(v0,v1,v2,v3) { indices.push(v0,v1,v2, v0,v2,v3); }
-
-  for (let k=0;k<res;k++) for (let j=0;j<=res;j++) for (let i=0;i<=res;i++) {
-    const va = field[idx(i,j,k)], vb = field[idx(i,j,k+1)];
-    if ((va>=0) === (vb>=0)) continue;
-    const c00=cellActive(i-1,j-1,k), c10=cellActive(i,j-1,k), c11=cellActive(i,j,k), c01=cellActive(i-1,j,k);
-    if (c00<0||c10<0||c11<0||c01<0) continue;
-    pushQuad(c00,c10,c11,c01);
-  }
-  for (let j=0;j<res;j++) for (let k=0;k<=res;k++) for (let i=0;i<=res;i++) {
-    const va = field[idx(i,j,k)], vb = field[idx(i,j+1,k)];
-    if ((va>=0) === (vb>=0)) continue;
-    const c00=cellActive(i-1,j,k-1), c10=cellActive(i,j,k-1), c11=cellActive(i,j,k), c01=cellActive(i-1,j,k);
-    if (c00<0||c10<0||c11<0||c01<0) continue;
-    pushQuad(c00,c10,c11,c01);
-  }
-  for (let i=0;i<res;i++) for (let k=0;k<=res;k++) for (let j=0;j<=res;j++) {
-    const va = field[idx(i,j,k)], vb = field[idx(i+1,j,k)];
-    if ((va>=0) === (vb>=0)) continue;
-    const c00=cellActive(i,j-1,k-1), c10=cellActive(i,j,k-1), c11=cellActive(i,j,k), c01=cellActive(i,j-1,k);
-    if (c00<0||c10<0||c11<0||c01<0) continue;
-    pushQuad(c00,c10,c11,c01);
-  }
-  return { positions: new Float32Array(positions), indices: new Uint32Array(indices) };
+function clearAxisErrors() {
+  document.getElementById('eqError').style.display = 'none';
+  axisInputIds.forEach(id => document.getElementById(id).classList.remove('invalid'));
 }
 
-function parseEquation(str) {
-  const parts = str.split('=');
-  let exprStr = parts.length === 2 ? `(${parts[0]}) - (${parts[1]})` : str;
-  const compiled = math.parse(exprStr).compile();
-  return (x, y, z) => compiled.evaluate({ x, y, z });
+function validateAxisField(inputEl) {
+  const v = parseFloat(inputEl.value);
+  const ok = !isNaN(v) && v >= AXIS_MIN && v <= AXIS_MAX;
+  inputEl.classList.toggle('invalid', !ok);
+  return ok;
 }
 
-function buildCustomSurface() {
-  const eqInput = document.getElementById('eqInput');
-  const boundInput = document.getElementById('eqBound');
-  const resInput = document.getElementById('eqRes');
-  const genBtn = document.getElementById('eqGenBtn');
+function validateAllAxes() {
   const errBox = document.getElementById('eqError');
+  let allOk = true;
+  axisInputIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!validateAxisField(el)) allOk = false;
+  });
+  if (!allOk) {
+    errBox.textContent = `⚠️ กรุณากรอกขนาดแกนให้อยู่ระหว่าง ${AXIS_MIN}-${AXIS_MAX} หน่วยเท่านั้น`;
+    errBox.style.display = 'block';
+  } else {
+    errBox.style.display = 'none';
+  }
+  return allOk;
+}
 
-  errBox.style.display = 'none';
+axisInputIds.forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const el = document.getElementById(id);
+    if (validateAxisField(el)) {
+      if (axisInputIds.every(i => document.getElementById(i).classList.contains('invalid') === false)) {
+        document.getElementById('eqError').style.display = 'none';
+      }
+    } else {
+      document.getElementById('eqError').textContent = `⚠️ ค่าต้องอยู่ระหว่าง ${AXIS_MIN}-${AXIS_MAX} หน่วย`;
+      document.getElementById('eqError').style.display = 'block';
+    }
+  });
+});
+
+function generateFromAxisInputs() {
+  if (!currentPreset) return;
+  if (!validateAllAxes()) return;
+
+  const x = parseFloat(document.getElementById('eqX').value);
+  const y = parseFloat(document.getElementById('eqY').value);
+  const z = parseFloat(document.getElementById('eqZ').value);
+
+  customAxis.x = x; customAxis.y = y; customAxis.z = z;
+
+  const genBtn = document.getElementById('eqGenBtn');
   genBtn.disabled = true;
-  genBtn.textContent = '⏳ กำลังคำนวณ...';
+  genBtn.textContent = '⏳ กำลังสร้าง...';
 
   setTimeout(() => {
     try {
-      const fn = parseEquation(eqInput.value.trim());
-      const testVal = fn(0.123, 0.234, 0.345);
-      if (typeof testVal !== 'number' || isNaN(testVal)) {
-        throw new Error('สมการนี้คำนวณค่าไม่ได้ ตรวจสอบรูปแบบอีกครั้ง');
-      }
-
-      const bound = Math.min(Math.max(parseFloat(boundInput.value) || 3, 0.5), 10);
-      const res = Math.min(Math.max(parseInt(resInput.value) || 26, 10), 40);
-
-      const { positions, indices } = generateIsosurface(fn, bound, res);
-      if (positions.length === 0) {
-        throw new Error('ไม่พบพื้นผิวในขอบเขตที่กำหนด ลองเพิ่มค่า "ขอบเขต"');
-      }
-
-      const THREE = AFRAME.THREE;
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-
-      geometry.computeBoundingBox();
-      const bb = geometry.boundingBox;
-      const center = new THREE.Vector3();
-      bb.getCenter(center);
-      geometry.translate(-center.x, -center.y, -center.z);
-      const size = new THREE.Vector3();
-      bb.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scaleVal = 1.4 / maxDim;
-      geometry.scale(scaleVal, scaleVal, scaleVal);
-      geometry.computeVertexNormals();
-
-      const group = document.getElementById('modelGroup');
-      group.innerHTML = '';
-      const entity = document.createElement('a-entity');
-      group.appendChild(entity);
-
-      const material = new THREE.MeshStandardMaterial({
-        color: SHAPES.custom.color, roughness: 0.35, metalness: 0.15, side: THREE.DoubleSide
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      entity.setObject3D('mesh', mesh);
-
-      const wireGeo = new THREE.WireframeGeometry(geometry);
-      const wireMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 });
-      const wireframe = new THREE.LineSegments(wireGeo, wireMat);
-      entity.setObject3D('wireframe', wireframe);
-
+      buildCustomShape(currentPreset, x, y, z);
       resetTransform();
+      updateActionButtonsState();
+      if (sheet.classList.contains('open') && sheet.dataset.kind) {
+        openContentFor(sheet.dataset.kind);
+      }
     } catch (err) {
+      const errBox = document.getElementById('eqError');
       errBox.textContent = '❌ ' + (err.message || 'เกิดข้อผิดพลาดในการสร้างโมเดล');
       errBox.style.display = 'block';
     } finally {
@@ -889,13 +1276,13 @@ function buildCustomSurface() {
   }, 20);
 }
 
-document.getElementById('eqGenBtn').onclick = buildCustomSurface;
+document.getElementById('eqGenBtn').onclick = generateFromAxisInputs;
 document.getElementById('eqPanelClose').onclick = () => {
   document.getElementById('eqPanel').classList.remove('open');
 };
 
-renderModel();
-document.getElementById('btnNet').disabled = !SHAPES[currentShape].hasNet;
+renderCubeShape();
+updateActionButtonsState();
 applyTransform();
 </script>
 </body>
