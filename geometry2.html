@@ -446,7 +446,7 @@
 <!-- ================= BOTTOM CONTROLS ================= -->
 <div id="controls">
   <button class="btn active" id="btnLabels">🏷️ ป้ายกำกับ</button>
-  <button class="btn" id="btnNet">📄 แยกส่วน</button>
+  <button class="btn" id="btnNet">📄 รูปคลี่</button>
   <button class="btn" id="btnFormula">📐 สูตรคำนวณ</button>
   <button class="btn" id="btnInfo">ℹ️ ข้อมูล</button>
 </div>
@@ -656,6 +656,8 @@ function selectShape(id) {
   });
 
   snapCloseNetIfOpen();
+
+  document.getElementById('controls').style.display = (id === 'cube') ? 'flex' : 'none';
 
   if (id === 'cube') {
     document.getElementById('eqPanel').classList.remove('open');
@@ -1123,12 +1125,49 @@ document.getElementById('btnLabels').onclick = (e) => {
 
 const modeBtn = document.getElementById('modeBtn');
 
+function showArUnsupportedMessage(extra) {
+  alert(
+    '⚠️ ไม่สามารถเข้าสู่โหมด AR ได้บนอุปกรณ์/เบราว์เซอร์นี้\n\n' +
+    'สาเหตุที่พบบ่อย:\n' +
+    '• เปิดผ่านเบราว์เซอร์ในแอปอื่น เช่น Messenger, Facebook, Line (in-app browser) ซึ่งไม่รองรับ WebXR\n' +
+    '• อุปกรณ์ไม่รองรับ ARCore (Android) หรือใช้ iOS (Safari ยังไม่รองรับ WebXR AR)\n\n' +
+    'วิธีแก้: กดปุ่ม "•••" ที่มุมขวาบน แล้วเลือก "เปิดใน Chrome" หรือคัดลอกลิงก์ไปเปิดด้วย Chrome บน Android โดยตรง' +
+    (extra ? ('\n\n(' + extra + ')') : '')
+  );
+}
+
+// ตรวจสอบล่วงหน้าว่าอุปกรณ์รองรับ WebXR AR หรือไม่ ถ้าไม่รองรับให้ปิดปุ่มและแจ้งเตือน
+if (navigator.xr && navigator.xr.isSessionSupported) {
+  navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+    if (!supported) {
+      modeBtn.title = 'อุปกรณ์/เบราว์เซอร์นี้อาจไม่รองรับ AR — กดเพื่อดูวิธีแก้ไข';
+    }
+  }).catch(() => {});
+}
+
 modeBtn.onclick = () => {
   const scene = document.querySelector('a-scene');
   if (scene.is('ar-mode')) {
     scene.exitVR();
-  } else {
-    scene.enterAR();
+    return;
+  }
+
+  if (!navigator.xr) {
+    showArUnsupportedMessage('เบราว์เซอร์นี้ไม่มี navigator.xr — มักเกิดจากการเปิดผ่านเบราว์เซอร์ในแอปแชท');
+    return;
+  }
+
+  try {
+    const enterPromise = scene.enterAR();
+    if (enterPromise && typeof enterPromise.catch === 'function') {
+      enterPromise.catch((err) => {
+        console.error('enterAR failed:', err);
+        showArUnsupportedMessage(err && err.message ? err.message : '');
+      });
+    }
+  } catch (err) {
+    console.error('enterAR threw:', err);
+    showArUnsupportedMessage(err && err.message ? err.message : '');
   }
 };
 
