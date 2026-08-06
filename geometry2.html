@@ -181,6 +181,20 @@
     display: none; flex-direction: column; align-items: flex-end; gap: 10px;
     pointer-events: auto;
   }
+  
+  /* เพิ่มส่วนเมนูที่กางออกจากปุ่มฟันเฟือง */
+  #arMenu {
+    display: none; flex-direction: column; align-items: flex-end; gap: 10px;
+  }
+  #arMenu.open {
+    display: flex; animation: slideUp 0.2s ease;
+  }
+  /* ทำให้ปุ่มในเมนู AR มีพื้นหลังทึบขึ้นเพื่อให้อ่านง่าย */
+  #arMenu .btn {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+  }
+
   #arGearBtn {
     width: 46px; height: 46px; border-radius: 50%;
     background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -190,12 +204,12 @@
     box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   }
   #arGearBtn.spin { transform: rotate(75deg); background: rgba(59, 130, 246, 0.55); }
+  
   #arExitBtn {
-    display: none; background: linear-gradient(135deg, #ff0080, #7928ca); color: #fff;
+    background: linear-gradient(135deg, #ff0080, #7928ca); color: #fff;
     border: none; padding: 11px 18px; border-radius: 22px; font-size: 13px; font-weight: 600;
     cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4); white-space: nowrap;
   }
-  #arExitBtn.open { display: block; animation: slideUp 0.2s ease; }
 
   #sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -301,11 +315,20 @@
           const topbarEl = document.getElementById('topbar');
           if (topbarEl) topbarEl.style.display = 'none';
 
-          // แสดงแถบปุ่ม (ป้ายกำกับ/รูปคลี่/สูตรคำนวณ/ข้อมูล) เสมอระหว่างโหมด AR
+          // ================= ย้ายปุ่มไปไว้ในเมนูฟันเฟือง =================
           const controlsEl = document.getElementById('controls');
-          if (controlsEl) controlsEl.style.display = 'flex';
+          const arMenu = document.getElementById('arMenu');
+          const arExitBtn = document.getElementById('arExitBtn');
+          
+          if (controlsEl && arMenu) {
+             controlsEl.style.display = 'none'; // ซ่อนแถบพื้นหลังด้านล่าง
+             
+             // ย้ายปุ่มทั้ง 4 ไปต่อในเมนูฟันเฟือง (วางไว้ก่อนปุ่มออก AR)
+             const buttons = Array.from(controlsEl.children);
+             buttons.forEach(btn => arMenu.insertBefore(btn, arExitBtn));
+          }
 
-          // แสดงปุ่มฟันเฟือง (เมนู/ออกจาก AR) ลอยมุมขวาบน
+          // แสดงปุ่มฟันเฟืองลอยมุมขวาบน
           const arFloatingEl = document.getElementById('arFloatingControls');
           if (arFloatingEl) arFloatingEl.style.display = 'flex';
         }
@@ -325,16 +348,24 @@
         const topbarEl = document.getElementById('topbar');
         if (topbarEl) topbarEl.style.display = '';
 
-        // แถบปุ่มด้านล่าง: แสดงเฉพาะหน้า "ลูกบาศก์" ตามปกตินอกโหมด AR
+        // ================= ย้ายปุ่มกลับไปไว้ด้านล่างตามเดิม =================
         const controlsEl = document.getElementById('controls');
-        if (controlsEl) controlsEl.style.display = (window.currentShape === 'custom') ? 'none' : 'flex';
+        const arMenu = document.getElementById('arMenu');
+        
+        if (controlsEl && arMenu) {
+           const buttons = Array.from(arMenu.children).filter(el => el.id !== 'arExitBtn');
+           buttons.forEach(btn => controlsEl.appendChild(btn));
+           
+           // แถบปุ่มด้านล่าง: แสดงเฉพาะหน้า "ลูกบาศก์" ตามปกตินอกโหมด AR
+           controlsEl.style.display = (window.currentShape === 'custom') ? 'none' : 'flex';
+        }
 
-        // ซ่อนปุ่มฟันเฟือง/ออกจาก AR แล้วรีเซ็ตสถานะ
+        // ซ่อนปุ่มฟันเฟืองและเมนู
         const arFloatingEl = document.getElementById('arFloatingControls');
         if (arFloatingEl) arFloatingEl.style.display = 'none';
-        const arExitBtnEl = document.getElementById('arExitBtn');
+        
+        if (arMenu) arMenu.classList.remove('open');
         const arGearBtnEl = document.getElementById('arGearBtn');
-        if (arExitBtnEl) arExitBtnEl.classList.remove('open');
         if (arGearBtnEl) arGearBtnEl.classList.remove('spin');
       });
     }
@@ -449,7 +480,10 @@
 
     <!-- ================= AR FLOATING GEAR / EXIT CONTROL ================= -->
     <div id="arFloatingControls">
-      <button id="arExitBtn">🚪 ออกจากโหมด AR</button>
+      <!-- ส่วนที่เก็บปุ่มขณะอยู่ใน AR โหมด -->
+      <div id="arMenu">
+        <button id="arExitBtn">🚪 ออกจากโหมด AR</button>
+      </div>
       <button id="arGearBtn" title="เมนู AR">⚙️</button>
     </div>
 
@@ -759,7 +793,7 @@ function selectPreset(id) {
   });
   document.getElementById('eqSelectHint').style.display = 'none';
   document.getElementById('eqAxisSection').classList.add('open');
-  document.getElementById('selectedShapeTag').textContent = '✓ รูปทรงที่เลือก: ' + PRESETS[id].th;
+  document.getElementById('selectedShapeTag').textContent = '✓ รูปทรงที่เลือก: ' + PRESETS[currentPreset].th;
 
   document.getElementById('eqX').value = customAxis.x;
   document.getElementById('eqY').value = customAxis.y;
@@ -1119,7 +1153,7 @@ function resetTransform() {
 }
 
 gestureLayer.addEventListener('pointerdown', e => {
-  if (e.target.closest('#topbar, #controls, #sheet, #eqPanel')) return;
+  if (e.target.closest('#topbar, #controls, #sheet, #eqPanel, #arFloatingControls')) return;
   dragging = true; lastX = e.clientX; lastY = e.clientY;
   gestureLayer.setPointerCapture(e.pointerId);
   hideHintSoon();
@@ -1143,7 +1177,7 @@ gestureLayer.addEventListener('wheel', e => {
 }, { passive: false });
 
 gestureLayer.addEventListener('click', (e) => {
-  if (e.target.closest('#topbar, #controls, #sheet, #eqPanel')) return;
+  if (e.target.closest('#topbar, #controls, #sheet, #eqPanel, #arFloatingControls')) return;
   if (!window.arModeActive) return;
 
   const cameraEl = document.getElementById('mainCamera');
@@ -1301,14 +1335,17 @@ document.getElementById('helpBtn').onclick = () => openContentFor('help');
 /* ------------ ปุ่มฟันเฟือง / ออกจาก AR ลอยมุมขวาบน ------------ */
 const arGearBtn = document.getElementById('arGearBtn');
 const arExitBtn = document.getElementById('arExitBtn');
+const arMenu = document.getElementById('arMenu');
+
 arGearBtn.onclick = () => {
-  arExitBtn.classList.toggle('open');
+  arMenu.classList.toggle('open');
   arGearBtn.classList.toggle('spin');
 };
+
 arExitBtn.onclick = () => {
   const scene = document.querySelector('a-scene');
   if (scene.is('ar-mode')) scene.exitVR();
-  arExitBtn.classList.remove('open');
+  arMenu.classList.remove('open');
   arGearBtn.classList.remove('spin');
 };
 
