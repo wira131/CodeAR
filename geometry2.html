@@ -45,7 +45,7 @@
   #loginScreen h1{
     font-size:2.6rem;font-weight:700;line-height:1.4;margin:0;max-width:760px;
     background:linear-gradient(135deg,#ffffff 0%,#60a5fa 50%,#93c5fd 100%);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
     text-shadow:0 4px 20px rgba(59,130,246,.2);
   }
   #loginScreen .login-sub{font-size:.85rem;color:var(--text-dim);font-weight:300;}
@@ -1115,7 +1115,7 @@ async function enterAR(){
     return;
   }
   if(!navigator.xr){
-    showARMessage('อุปกรณ์นี้ไม่รองรับ WebXR AR กรุณาใช้ Chrome บน Android ที่รองรับ ARCore');
+    showARMessage('มือถือ/เบราว์เซอร์นี้ไม่รองรับ WebXR AR กรุณาเปิดด้วย Chrome บน Android ที่รองรับ ARCore');
     return;
   }
   arBusy = true;
@@ -1124,7 +1124,7 @@ async function enterAR(){
   try{
     renderer.xr.setReferenceSpaceType('local-floor');
     const supported = await withTimeout(navigator.xr.isSessionSupported('immersive-ar'),8000);
-    if(!supported) throw new Error('immersive-ar is not supported');
+    if(!supported) throw new Error('เบราว์เซอร์นี้ไม่รองรับ immersive-ar หรืออุปกรณ์ไม่มี ARCore');
     arSession = await withTimeout(navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
       optionalFeatures:['dom-overlay','local-floor'],
@@ -1156,7 +1156,7 @@ async function enterAR(){
   }catch(err){
     if(arSession) await arSession.end().catch(()=>{});
     resetARState();
-    showARMessage('เปิด AR ไม่สำเร็จ: อนุญาตกล้องและเปิดเว็บผ่าน HTTPS แล้วลองใหม่');
+    showARMessage(`เปิด AR ไม่สำเร็จ: ${err.message || 'อนุญาตกล้องและเปิดเว็บผ่าน HTTPS แล้วลองใหม่'}`);
   } finally {
     arBusy = false;
     arModeBtn.disabled = false;
