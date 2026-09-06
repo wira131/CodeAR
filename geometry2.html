@@ -1080,6 +1080,7 @@ document.getElementById('cameraPreviewBtn').addEventListener('click', toggleCame
 const arModeBtn = document.getElementById('arModeBtn');
 const arHint = document.getElementById('arHint');
 let arBusy = false;
+let fallbackAR = false;
 
 function showARMessage(message){
   arHint.textContent = message;
@@ -1106,6 +1107,23 @@ function resetARState(){
   idleGroup.visible = !currentShapeId;
   renderer.setAnimationLoop(null);
   requestAnimationFrame(animate);
+  if(fallbackAR){
+    fallbackAR = false;
+    if(cameraOn) toggleCameraPreview();
+  }
+}
+
+async function enterFallbackAR(){
+  await toggleCameraPreview();
+  if(!cameraOn) return false;
+  fallbackAR = true;
+  mainGroup.visible = true;
+  idleGroup.visible = false;
+  arModeBtn.classList.add('on');
+  arModeBtn.setAttribute('aria-pressed','true');
+  arModeBtn.lastChild.textContent = ' ออกจาก AR';
+  showARMessage('โหมดกล้องทดแทน: หมุนหรือซูมโมเดลบนภาพกล้องได้ แต่ไม่มีการล็อกตำแหน่งบนพื้นจริง');
+  return true;
 }
 
 async function enterAR(){
@@ -1115,7 +1133,7 @@ async function enterAR(){
     return;
   }
   if(!navigator.xr){
-    showARMessage('มือถือ/เบราว์เซอร์นี้ไม่รองรับ WebXR AR กรุณาเปิดด้วย Chrome บน Android ที่รองรับ ARCore');
+    await enterFallbackAR();
     return;
   }
   arBusy = true;
@@ -1124,7 +1142,10 @@ async function enterAR(){
   try{
     renderer.xr.setReferenceSpaceType('local-floor');
     const supported = await withTimeout(navigator.xr.isSessionSupported('immersive-ar'),8000);
-    if(!supported) throw new Error('เบราว์เซอร์นี้ไม่รองรับ immersive-ar หรืออุปกรณ์ไม่มี ARCore');
+    if(!supported){
+      await enterFallbackAR();
+      return;
+    }
     arSession = await withTimeout(navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
       optionalFeatures:['dom-overlay','local-floor'],
@@ -1156,7 +1177,7 @@ async function enterAR(){
   }catch(err){
     if(arSession) await arSession.end().catch(()=>{});
     resetARState();
-    showARMessage(`เปิด AR ไม่สำเร็จ: ${err.message || 'อนุญาตกล้องและเปิดเว็บผ่าน HTTPS แล้วลองใหม่'}`);
+    await enterFallbackAR();
   } finally {
     arBusy = false;
     arModeBtn.disabled = false;
@@ -1164,6 +1185,10 @@ async function enterAR(){
 }
 
 async function toggleARMode(){
+  if(fallbackAR){
+    resetARState();
+    return;
+  }
   if(arSession){
     await arSession.end();
     return;
