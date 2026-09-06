@@ -5,28 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>WebAR เรขาคณิตสามมิติ - Geometry Learning Demo</title>
 
-<!-- นำเข้าฟอนต์ Prompt จาก Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- ใช้ A-Frame 1.6.0 รองรับ WebXR เต็มรูปแบบสำหรับการทำ AR/VR -->
+<!-- ใช้ A-Frame 1.6.0 รองรับ WebXR เต็มรูปแบบ -->
 <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
 
 <style>
-  /* =========================================
-     ส่วนของการตกแต่ง CSS (UI และ Layout)
-  ========================================= */
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
     font-family: 'Prompt', sans-serif;
-    overflow: hidden; /* ป้องกันการเลื่อนหน้าจอ */
+    overflow: hidden;
     background: #0b1220;
     touch-action: none;
   }
 
-  /* ซ่อนปุ่มเข้า VR อัตโนมัติของ A-Frame เพราะเราสร้างปุ่ม AR เอง */
   .a-enter-vr-button { display: none !important; }
 
-  /* พื้นหลังและกล้องจำลองเมื่อไม่ได้อยู่ในโหมด AR */
   #camFeed {
     position: fixed; inset: 0; width: 100%; height: 100%;
     object-fit: cover; z-index: 0; display: none;
@@ -36,20 +30,17 @@
     background: radial-gradient(circle at 50% 30%, #1e293b 0%, #020617 80%);
   }
 
-  /* ตั้งค่าให้ฉาก 3 มิติ (A-Frame) โปร่งใสเพื่อแสดงซ้อนบนพื้นหลัง/กล้องได้ */
   a-scene {
     position: fixed; inset: 0; width: 100%; height: 100%;
     z-index: 1; background: transparent !important;
   }
 
-  /* เลเยอร์รับสัมผัสสำหรับการหมุนและซูมโมเดล */
   #gestureLayer {
     position: fixed; inset: 0; z-index: 5;
     touch-action: none;
     pointer-events: auto;
   }
 
-  /* สไตล์กระจก (Glassmorphism) สำหรับหน้าต่าง UI */
   .glass-panel {
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(12px);
@@ -57,7 +48,6 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* แถบเมนูด้านบน */
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 20;
     padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
@@ -76,7 +66,6 @@
   .iconBtn:hover { background: rgba(255, 255, 255, 0.2); }
   .iconBtn.active { background: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
 
-  /* แท็บเลือกหมวดหมู่รูปทรง */
   #shapeTabs {
     display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
     scrollbar-width: none;
@@ -91,7 +80,6 @@
   .shapeTab:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
   .shapeTab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 500; }
 
-  /* หน้าต่างปรับแต่งขนาดโมเดล (แกน X, Y, Z) */
   #eqPanel {
     position: fixed; left: 16px; right: 16px; z-index: 19;
     bottom: calc(100px + env(safe-area-inset-bottom));
@@ -112,7 +100,6 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
 
-  /* ปุ่มเลือก Preset รูปทรง */
   #presetLabel { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px; }
   #presetRow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
   .presetPill {
@@ -129,13 +116,13 @@
     padding: 10px 12px; margin-top: 12px; line-height: 1.5; display: block;
   }
 
-  /* ช่องกรอกข้อมูล X, Y, Z */
   #eqAxisSection { display: none; margin-top: 16px; }
   #eqAxisSection.open { display: block; animation: slideUp 0.25s ease; }
   #eqAxisSection .selectedShapeTag {
     display: inline-block; font-size: 12px; color: #38bdf8; background: rgba(14,165,233,0.12);
     border: 1px solid rgba(56,189,248,0.35); border-radius: 12px; padding: 4px 10px; margin-bottom: 12px;
   }
+
   #eqPanel label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 6px; }
   #eqPanel input[type=text], #eqPanel input[type=number] {
     width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); 
@@ -147,7 +134,6 @@
   #eqRow { display: flex; gap: 12px; margin-bottom: 4px; }
   #eqRow > div { flex: 1; }
   
-  /* ปุ่มยืนยันการสร้างโมเดล */
   #eqGenBtn {
     width: 100%; background: #3b82f6; border: none; color: #fff;
     font-size: 14px; font-weight: 500; padding: 12px; border-radius: 10px;
@@ -158,7 +144,6 @@
   #eqError { font-size: 12px; color: #f87171; margin-top: 8px; display: none; }
   #eqHint { font-size: 11px; color: #64748b; margin-top: 12px; line-height: 1.5; }
 
-  /* ข้อความแนะนำวิธีใช้งานที่ลอยอยู่กลางจอ */
   #gestureHint {
     position: fixed; top: 105px; left: 50%; transform: translateX(-50%);
     z-index: 15; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);
@@ -167,7 +152,6 @@
     text-align: center; line-height: 1.4;
   }
 
-  /* แถบควบคุมเมนูด้านล่างสุด (ป้ายกำกับ, รูปคลี่, สูตร, ข้อมูล) */
   #controls {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     display: flex; justify-content: center; gap: 10px;
@@ -186,22 +170,30 @@
   .btn.active { background: #3b82f6; border-color: #60a5fa; color: #fff; box-shadow: 0 0 12px rgba(59, 130, 246, 0.3); }
   .btn[disabled] { opacity: 0.3; cursor: not-allowed; background: transparent; border-color: transparent; }
 
-  /* ปุ่มเข้า AR */
   #modeBtn {
     background: linear-gradient(135deg, #ff0080, #7928ca);
     color: white; border: none; font-weight: bold;
     box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
   }
 
-  /* เมนูควบคุมขณะอยู่ในโหมด AR (ปุ่มฟันเฟือง) */
   #arFloatingControls {
     position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 25;
     display: none; flex-direction: column; align-items: flex-end; gap: 10px;
     pointer-events: auto;
   }
-  #arMenu { display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
-  #arMenu.open { display: flex; animation: slideUp 0.2s ease; }
-  #arMenu .btn { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); }
+  
+  /* เพิ่มส่วนเมนูที่กางออกจากปุ่มฟันเฟือง */
+  #arMenu {
+    display: none; flex-direction: column; align-items: flex-end; gap: 10px;
+  }
+  #arMenu.open {
+    display: flex; animation: slideUp 0.2s ease;
+  }
+  /* ทำให้ปุ่มในเมนู AR มีพื้นหลังทึบขึ้นเพื่อให้อ่านง่าย */
+  #arMenu .btn {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+  }
 
   #arGearBtn {
     width: 46px; height: 46px; border-radius: 50%;
@@ -219,7 +211,6 @@
     cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4); white-space: nowrap;
   }
 
-  /* หน้าต่างแสดงข้อมูล/สูตรแบบสไลด์ขึ้นจากด้านล่าง (Bottom Sheet) */
   #sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     max-height: 75%; overflow-y: auto;
@@ -248,7 +239,6 @@
     margin: 0 auto 16px;
   }
 
-  /* Loader แอนิเมชันสำหรับรออนุญาตกล้อง */
   #loader {
     height: 100%; width: 100%; position: fixed; inset: 0;
     background-color: rgba(2, 6, 23, 0.95); z-index: 999;
@@ -262,13 +252,9 @@
 </style>
 
 <script>
-  /* =========================================
-     A-Frame Custom Components (สคริปต์ควบคุม AR)
-  ========================================= */
   window.arModeActive = false;
   window.currentScaleVal = 1;
 
-  // คอมโพเนนต์สำหรับจัดการการซูม (บีบนิ้ว) ในโหมด 3D ปกติ
   AFRAME.registerComponent('ar-scale-manager', {
     schema: { min: {default: 0.2}, max: {default: 5} },
     init: function() {
@@ -304,7 +290,6 @@
     }
   });
 
-  // คอมโพเนนต์ควบคุมสถานะระหว่างโหมด AR กับโหมดปกติ (ซ่อน/แสดง UI)
   AFRAME.registerComponent('ar-controller', {
     init: function () {
       const sceneEl = this.el;
@@ -314,61 +299,68 @@
       const ground = document.getElementById('ground');
       const anchor = document.getElementById('worldAnchor');
 
-      // เมื่อเข้าสู่โหมด AR
       sceneEl.addEventListener('enter-vr', () => {
         if (sceneEl.is('ar-mode')) {
           if(studioBg) studioBg.style.display = 'none';
           if(camFeed) camFeed.style.display = 'none';
           if(modeBtn) modeBtn.textContent = 'ออกจาก AR';
-          if(ground) ground.setAttribute('visible', 'true'); // แสดงเงาบนพื้น
+          if(ground) ground.setAttribute('visible', 'true');
           
-          if(anchor) anchor.setAttribute('position', '0 -0.5 -2.5');
+          if(anchor) {
+            anchor.setAttribute('position', '0 -0.5 -2.5');
+          }
           window.arModeActive = true;
 
-          // ซ่อนแถบหัวข้อเพื่อไม่บังกล้อง
+          // ซ่อนแถบหัวข้อ/แท็บ ระหว่างโหมด AR เพื่อไม่บังกล้อง
           const topbarEl = document.getElementById('topbar');
           if (topbarEl) topbarEl.style.display = 'none';
 
-          // ย้ายปุ่มเมนูด้านล่าง ไปรวมในปุ่มฟันเฟือง (UI ใน AR)
+          // ================= ย้ายปุ่มไปไว้ในเมนูฟันเฟือง =================
           const controlsEl = document.getElementById('controls');
           const arMenu = document.getElementById('arMenu');
           const arExitBtn = document.getElementById('arExitBtn');
           
           if (controlsEl && arMenu) {
-             controlsEl.style.display = 'none';
+             controlsEl.style.display = 'none'; // ซ่อนแถบพื้นหลังด้านล่าง
+             
+             // ย้ายปุ่มทั้ง 4 ไปต่อในเมนูฟันเฟือง (วางไว้ก่อนปุ่มออก AR)
              const buttons = Array.from(controlsEl.children);
              buttons.forEach(btn => arMenu.insertBefore(btn, arExitBtn));
           }
 
-          // แสดงปุ่มฟันเฟือง
+          // แสดงปุ่มฟันเฟืองลอยมุมขวาบน
           const arFloatingEl = document.getElementById('arFloatingControls');
           if (arFloatingEl) arFloatingEl.style.display = 'flex';
         }
       });
 
-      // เมื่อออกจากโหมด AR กลับมาโหมดปกติ
       sceneEl.addEventListener('exit-vr', () => {
         if(studioBg) studioBg.style.display = 'block';
         if(modeBtn) modeBtn.textContent = '✨ เข้าสู่โหมด AR';
         if(ground) ground.setAttribute('visible', 'false');
         
-        if(anchor) anchor.setAttribute('position', '0 1.2 -2.5');
+        if(anchor) {
+          anchor.setAttribute('position', '0 1.2 -2.5');
+        }
         window.arModeActive = false;
 
         // คืนค่าแถบหัวข้อ/แท็บ
         const topbarEl = document.getElementById('topbar');
         if (topbarEl) topbarEl.style.display = '';
 
-        // ย้ายปุ่มกลับไปไว้ด้านล่างตามเดิม
+        // ================= ย้ายปุ่มกลับไปไว้ด้านล่างตามเดิม =================
         const controlsEl = document.getElementById('controls');
         const arMenu = document.getElementById('arMenu');
         
         if (controlsEl && arMenu) {
            const buttons = Array.from(arMenu.children).filter(el => el.id !== 'arExitBtn');
            buttons.forEach(btn => controlsEl.appendChild(btn));
+           
+           // แถบปุ่มด้านล่าง: แสดงเฉพาะหน้า "ลูกบาศก์" ตามปกตินอกโหมด AR
            controlsEl.style.display = (window.currentShape === 'custom') ? 'none' : 'flex';
         }
 
+        // ซ่อนปุ่มฟันเฟืองและเมนู
         const arFloatingEl = document.getElementById('arFloatingControls');
         if (arFloatingEl) arFloatingEl.style.display = 'none';
         
@@ -379,16 +371,16 @@
     }
   });
 
-  // คอมโพเนนต์ทำให้โมเดล "เดินตาม" ผู้ใช้ หากผู้ใช้เดินถอยห่างโมเดลเกินระยะที่ตั้งไว้ (World Tracking)
   let mixer = null;
   const clock = new AFRAME.THREE.Clock();
-  const FOLLOW_THRESHOLD = 3.0; // ระยะห่างสูงสุด
-  const MOVE_SPEED = 0.035; // ความเร็วในการเดินตาม
+  const FOLLOW_THRESHOLD = 3.0;
+  const MOVE_SPEED = 0.035;
 
   AFRAME.registerComponent('world-tracking-controller', {
     tick: function () {
       const delta = clock.getDelta();
       if (mixer) mixer.update(delta);
+
       if (!window.arModeActive) return;
 
       const cameraEl = document.getElementById('mainCamera');
@@ -403,13 +395,11 @@
       camera3D.getWorldPosition(camPos);
       anchor3D.getWorldPosition(anchorPos);
 
-      // ให้โมเดลหันหน้าเข้าหากล้องเสมอ
       const targetLookAt = new AFRAME.THREE.Vector3(camPos.x, anchorPos.y, camPos.z);
       anchor3D.lookAt(targetLookAt);
 
       const distXZ = Math.hypot(camPos.x - anchorPos.x, camPos.z - anchorPos.z);
 
-      // ถ้าห่างเกิน FOLLOW_THRESHOLD ให้เลื่อนโมเดลเข้ามาหา
       if (distXZ > FOLLOW_THRESHOLD) {
         const dirToCam = new AFRAME.THREE.Vector3().subVectors(camPos, anchorPos);
         dirToCam.y = 0;
@@ -420,6 +410,7 @@
           .sub(dirToCam.multiplyScalar(2.0));
         
         followTarget.y = -0.5;
+
         anchor3D.position.lerp(followTarget, MOVE_SPEED);
       }
     }
@@ -428,11 +419,9 @@
 </head>
 <body>
 
-<!-- พื้นหลังเมื่อไม่อยู่ในโหมด AR -->
 <div id="studioBg"></div>
 <video id="camFeed" autoplay playsinline muted></video>
 
-<!-- แอนิเมชันและข้อความตอนโหลดขออนุญาตกล้อง -->
 <div id="loader">
   <div>
     <div id="loaderText">📷 กำลังขอสิทธิ์ใช้งานกล้อง...</div>
@@ -441,7 +430,7 @@
   </div>
 </div>
 
-<!-- ================= A-FRAME SCENE (ฉาก 3 มิติหลัก) ================= -->
+<!-- ================= A-FRAME SCENE ================= -->
 <a-scene embedded
          ar-controller
          ar-scale-manager
@@ -450,12 +439,12 @@
          renderer="colorManagement: true; antialias: true; alpha: true; precision: high; shadowMapEnabled: true;"
          webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-wrapper">
 
-    <!-- จุดศูนย์กลางกล้อง -->
+    <!-- Camera Rig -->
     <a-entity id="rig" position="0 0 0">
       <a-camera id="mainCamera" look-controls="enabled: false; magicWindowTrackingEnabled: true; touchEnabled: false;"></a-camera>
     </a-entity>
 
-    <!-- พื้นสำหรับรับเงาใน AR -->
+    <!-- Ground Plane -->
     <a-plane
         id="ground"
         position="0 -1.5 0"
@@ -467,37 +456,38 @@
         material="color: #1e293b; opacity: 0.25; transparent: true;">
     </a-plane>
 
-    <!-- World Anchor: จุดหลักที่ใช้ยึดโมเดลเรขาคณิต -->
+    <!-- World Anchor System -->
     <a-entity id="worldAnchor" position="0 1.2 -2.5">
-        <!-- Model Group: กลุ่มของโมเดล 3 มิติจะถูกสร้างขึ้นด้วย Javascript และใส่ไว้ในนี้ -->
+
+        <!-- Model Group -->
         <a-entity id="modelGroup" rotation="15 -25 0" scale="1 1 1">
         </a-entity>
+
     </a-entity>
   
-  <!-- แสงในฉาก (แสงหลักจากทิศทางเดียวและแสงแอมเบียนต์) -->
+  <!-- Lighting -->
   <a-entity light="type: directional; color: #ffffff; intensity: 1.2; castShadow: true; shadowMapHeight: 1024; shadowMapWidth: 1024;" position="2 5 3"></a-entity>
   <a-entity light="type: directional; color: #a5b4fc; intensity: 0.4" position="-2 2 -2"></a-entity>
   <a-entity light="type: ambient; color: #ffffff; intensity: 0.6"></a-entity>
 </a-scene>
 
-<!-- ================= ครอบ UI ทั้งหมดด้วย ui-wrapper เพื่อให้ทำงานใน DOM Overlay (ซ้อนทับจอ AR) ================= -->
+<!-- ================= ครอบ UI ทั้งหมดด้วย ui-wrapper เพื่อให้ทำงานใน DOM Overlay (AR) ================= -->
 <div id="ui-wrapper" style="position: absolute; inset: 0; z-index: 10; pointer-events: none;">
 
-    <!-- เลเยอร์รับสัมผัสพร้อมข้อความบอกใบ้การใช้งาน -->
     <div id="gestureLayer">
       <div id="gestureHint">👆 ลากเพื่อหมุน · บีบ/เลื่อนล้อเมาส์เพื่อซูม<br/><small style="opacity:0.85; font-size:11px;">(ในโหมด AR: แตะหน้าจอเพื่อวาง/ย้ายตำแหน่งโมเดลบนพื้นจริง)</small></div>
     </div>
 
     <!-- ================= AR FLOATING GEAR / EXIT CONTROL ================= -->
     <div id="arFloatingControls">
-      <!-- เมนูฟันเฟืองลอยมุมขวาบน จะแสดงเฉพาะใน AR -->
+      <!-- ส่วนที่เก็บปุ่มขณะอยู่ใน AR โหมด -->
       <div id="arMenu">
         <button id="arExitBtn">🚪 ออกจากโหมด AR</button>
       </div>
       <button id="arGearBtn" title="เมนู AR">⚙️</button>
     </div>
 
-    <!-- ================= CUSTOM MODEL PANEL (หน้าต่างปรับขนาด X Y Z) ================= -->
+    <!-- ================= CUSTOM MODEL PANEL ================= -->
     <div id="eqPanel" class="glass-panel">
       <div id="eqPanelHead">
         <strong id="eqPanelTitle">📐 สร้างโมเดล 3 มิติ</strong>
@@ -508,14 +498,22 @@
       <div id="presetRow"></div>
       <div id="eqSelectHint">👆 กรุณาเลือกรูปทรงด้านบนก่อน จากนั้นระบบจะเปิดให้คุณกำหนดขนาดแกน X, Y, Z ของรูปทรงนั้นเอง</div>
 
-      <!-- ส่วนกรอกตัวเลข X Y Z (จะแสดงเมื่อเลือก Preset แล้ว) -->
       <div id="eqAxisSection">
         <span class="selectedShapeTag" id="selectedShapeTag"></span>
         <label style="margin-top:2px;">ขั้นที่ 2 — กำหนดขนาดแกน X Y Z ของรูปทรงที่เลือก</label>
         <div id="eqRow">
-          <div><label>แกน X</label><input type="number" id="eqX" value="3" step="0.5" min="1" max="10" /></div>
-          <div><label>แกน Y</label><input type="number" id="eqY" value="3" step="0.5" min="1" max="10" /></div>
-          <div><label>แกน Z</label><input type="number" id="eqZ" value="3" step="0.5" min="1" max="10" /></div>
+          <div>
+            <label>แกน X</label>
+            <input type="number" id="eqX" value="3" step="0.5" min="1" max="10" />
+          </div>
+          <div>
+            <label>แกน Y</label>
+            <input type="number" id="eqY" value="3" step="0.5" min="1" max="10" />
+          </div>
+          <div>
+            <label>แกน Z</label>
+            <input type="number" id="eqZ" value="3" step="0.5" min="1" max="10" />
+          </div>
         </div>
         <button id="eqGenBtn">⚙️ สร้างโมเดล</button>
         <div id="eqError"></div>
@@ -523,7 +521,7 @@
       </div>
     </div>
 
-    <!-- ================= TOP BAR (แถบหัวข้อและเลือกโหมดหลัก) ================= -->
+    <!-- ================= TOP BAR ================= -->
     <div id="topbar" class="glass-panel">
       <div id="titleRow">
         <h1>Geometry Learning with WEB AR</h1>
@@ -537,7 +535,7 @@
       <div id="shapeTabs"></div>
     </div>
 
-    <!-- ================= BOTTOM CONTROLS (แถบปุ่มจัดการโมเดล) ================= -->
+    <!-- ================= BOTTOM CONTROLS ================= -->
     <div id="controls">
       <button class="btn active" id="btnLabels">🏷️ ป้ายกำกับ</button>
       <button class="btn" id="btnNet">📄 รูปคลี่</button>
@@ -545,7 +543,7 @@
       <button class="btn" id="btnInfo">ℹ️ ข้อมูล</button>
     </div>
 
-    <!-- ================= BOTTOM SHEET (หน้าต่างสไลด์จากด้านล่าง แสดงข้อมูล/สูตร) ================= -->
+    <!-- ================= BOTTOM SHEET ================= -->
     <div id="sheet">
       <button id="sheetClose">✕</button>
       <div id="sheetHandle"></div>
@@ -556,11 +554,13 @@
 
 <script>
 /* ==================================================================
-   ส่วนของ JavaScript จัดการลอจิกแอปพลิเคชันหลัก
+   1) "ลูกบาศก์" — รูปทรงตัวอย่างขนาดคงที่ ไม่ต้องกำหนดแกนเอง
+   2) "สร้างโมเดลเรขาคณิต 3 มิติ" — ขั้นที่ 1 เลือกรูปทรงสำเร็จรูปก่อน
+      ขั้นที่ 2 จึงกำหนดแกน X Y Z เอง แล้วโมเดลจะแสดงเป็นรูปทรงที่เลือกไว้
    ================================================================== */
 function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('th-TH'); }
 
-/* ---------- 1) ฐานข้อมูล: ลูกบาศก์ตัวอย่าง (ขนาดตายตัว) ---------- */
+/* ---------- 1) ลูกบาศก์ตัวอย่าง (ขนาดคงที่) ---------- */
 const CUBE_SHAPE = {
   th: "ลูกบาศก์", color: "#e2e8f0",
   faces: 6, edges: 12, vertices: 8,
@@ -576,7 +576,7 @@ const CUBE_SHAPE = {
   examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
 };
 
-/* ---------- 2) ฐานข้อมูล: รูปทรงเรขาคณิตสำหรับสร้างแบบ Custom (สร้างจากแกน XYZ) ---------- */
+/* ---------- 2) รูปทรงสำเร็จรูปสำหรับโหมด "สร้างโมเดลเรขาคณิต 3 มิติ" ---------- */
 const PRESETS = {
   box: {
     th: "กล่องสี่เหลี่ยม", color: "#60a5fa", geometryType: "box", flatShading: true,
@@ -589,26 +589,119 @@ const PRESETS = {
     description: `กล่องสี่เหลี่ยมมุมฉากมี 6 หน้าเป็นสี่เหลี่ยม 12 ขอบ 8 จุดยอด ทุกมุมเป็นมุมฉาก 90 องศา หากตั้งค่าแกน X = Y = Z จะได้ลูกบาศก์ที่สมบูรณ์`,
     examples: "ลูกเต๋า, กล่องของขวัญ, ก้อนน้ำแข็ง",
   },
-  // ปริซึมหกเหลี่ยม พีระมิด ทรงกระบอก ทรงกรวย และ ทรงกลม ถูกนิยามค่าและสูตรทางคณิตศาสตร์ที่นี่
-  hexPrism: { /*...ข้อมูลปริซึมหกเหลี่ยม...*/ th: "ปริซึมหกเหลี่ยม", color: "#34d399", geometryType: "hexPrism", flatShading: true, faces: 8, edges: 18, vertices: 12, formulaTitle: "ปริซึมหกเหลี่ยมด้านเท่า", formulas: (x, y, z) => { const s = x / 2, h = y; const baseArea = (3 * Math.sqrt(3) / 2) * s * s; return [ ["ด้านฐาน (s) และความสูง (h)", `s = X/2 = ${fmt(s)} หน่วย, h = Y = ${fmt(h)} หน่วย`], ["พื้นที่ฐาน (A)", `A = (3√3/2)s² = ${fmt(baseArea)} หน่วย²`], ["ปริมาตร (V)", `V = A×h = ${fmt(baseArea)} × ${fmt(h)} = ${fmt(baseArea*h)} หน่วย³`], ["พื้นที่ผิวทั้งหมด (S)", `S = 2A + 6sh = ${fmt(2*baseArea + 6*s*h)} หน่วย²`], ]; }, description: `ปริซึมหกเหลี่ยมมีฐานเป็นรูปหกเหลี่ยมด้านเท่า 2 ฐาน และผิวข้าง 6 ผืน สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นหกเหลี่ยมสม่ำเสมอ) แกน Y คือความสูงของปริซึม`, examples: "ดินสอไม้ (บางแบบ), น็อตหกเหลี่ยม, เสาหกเหลี่ยมตกแต่ง", },
-  pyramid: { /*...ข้อมูลพีระมิด...*/ th: "พีระมิด", color: "#fbbf24", geometryType: "pyramid", flatShading: true, faces: 5, edges: 8, vertices: 5, formulaTitle: "พีระมิดฐานสี่เหลี่ยมจัตุรัส", formulas: (x, y, z) => { const a = x, h = y; const slant = Math.sqrt((a/2)**2 + h**2); const baseArea = a * a; const surface = baseArea + 2 * a * slant; const volume = (1/3) * baseArea * h; return [ ["ด้านฐาน (a) และความสูง (h)", `a = X = ${fmt(a)} หน่วย, h = Y = ${fmt(h)} หน่วย`], ["ความสูงเอียง (l)", `l = √((a/2)² + h²) = ${fmt(slant)} หน่วย`], ["พื้นที่ผิวทั้งหมด (S)", `S = a² + 2al = ${fmt(surface)} หน่วย²`], ["ปริมาตร (V)", `V = (1/3)a²h = ${fmt(volume)} หน่วย³`], ]; }, description: `พีระมิดฐานสี่เหลี่ยมมีฐานเป็นสี่เหลี่ยมจัตุรัส 1 ฐาน และหน้าสามเหลี่ยม 4 หน้าบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นสี่เหลี่ยมจัตุรัส) แกน Y คือความสูงของพีระมิด`, examples: "พีระมิดอียิปต์, หลังคาทรงพีระมิด, ยอดตึกบางแบบ", },
-  cylinder: { /*...ข้อมูลทรงกระบอก...*/ th: "ทรงกระบอก", color: "#a78bfa", geometryType: "cylinder", flatShading: false, faces: 3, edges: 2, vertices: 0, formulaTitle: "ทรงกระบอก", formulas: (x, y, z) => { const r = x / 2, h = y; const volume = Math.PI * r * r * h; const surface = 2 * Math.PI * r * (r + h); return [ ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`], ["ปริมาตร (V)", `V = πr²h = ${fmt(volume)} หน่วย³`], ["พื้นที่ผิวทั้งหมด (S)", `S = 2πr(r+h) = ${fmt(surface)} หน่วย²`], ]; }, description: `ทรงกระบอกมีฐานเป็นวงกลม 2 ฐานขนานกัน และผิวข้างโค้งเรียบ สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกระบอก`, examples: "กระป๋องน้ำอัดลม, ท่อ PVC, แก้วน้ำทรงกระบอก", },
-  cone: { /*...ข้อมูลทรงกรวย...*/ th: "ทรงกรวย", color: "#fb7185", geometryType: "cone", flatShading: false, faces: 2, edges: 1, vertices: 1, formulaTitle: "ทรงกรวย", formulas: (x, y, z) => { const r = x / 2, h = y; const slant = Math.sqrt(r*r + h*h); const volume = (1/3) * Math.PI * r * r * h; const surface = Math.PI * r * (r + slant); return [ ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`], ["ความสูงเอียง (l)", `l = √(r² + h²) = ${fmt(slant)} หน่วย`], ["ปริมาตร (V)", `V = (1/3)πr²h = ${fmt(volume)} หน่วย³`], ["พื้นที่ผิวทั้งหมด (S)", `S = πr(r+l) = ${fmt(surface)} หน่วย²`], ]; }, description: `ทรงกรวยมีฐานเป็นวงกลม 1 ฐาน และผิวข้างโค้งเรียวไปบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกรวย`, examples: "ไอศกรีมโคน, หมวกปาร์ตี้, กรวยจราจร", },
-  sphere: { /*...ข้อมูลทรงกลม...*/ th: "ทรงกลม / ทรงรี", color: "#38bdf8", geometryType: "sphere", flatShading: false, faces: 1, edges: 0, vertices: 0, formulaTitle: "ทรงกลม / ทรงรี", formulas: (x, y, z) => { const a = x/2, b = y/2, c = z/2; const volume = (4/3) * Math.PI * a * b * c; const isSphere = (Math.abs(x-y) < 0.001 && Math.abs(y-z) < 0.001); if (isSphere) { const r = a; return [ ["รัศมี (r)", `r = X/2 = ${fmt(r)} หน่วย`], ["ปริมาตร (V)", `V = (4/3)πr³ = ${fmt(volume)} หน่วย³`], ["พื้นที่ผิวทั้งหมด (S)", `S = 4πr² = ${fmt(4*Math.PI*r*r)} หน่วย²`], ]; } const p = 1.6075; const surfaceApprox = 4 * Math.PI * Math.pow((Math.pow(a*b,p) + Math.pow(a*c,p) + Math.pow(b*c,p)) / 3, 1/p); return [ ["ครึ่งแกน (semi-axis) a, b, c", `a = X/2 = ${fmt(a)}, b = Y/2 = ${fmt(b)}, c = Z/2 = ${fmt(c)} หน่วย`], ["ปริมาตร (V)", `V = (4/3)πabc = ${fmt(volume)} หน่วย³`], ["พื้นที่ผิว โดยประมาณ (S)", `S ≈ ${fmt(surfaceApprox)} หน่วย² (สูตรประมาณของ Knud Thomsen)`], ]; }, description: `ทรงกลม/ทรงรีคือรูปทรงพื้นผิวโค้งต่อเนื่อง หากกำหนดแกน X, Y, Z เท่ากันทั้งหมดจะได้ทรงกลมสมบูรณ์ หากตั้งไม่เท่ากันจะกลายเป็นทรงรี (Ellipsoid) รูปทรงนี้ไม่มีรูปคลี่ (net) เนื่องจากพื้นผิวโค้งต่อเนื่องไม่สามารถคลี่ออกเป็นระนาบได้`, examples: "ลูกบอล, ลูกโลก, ไข่, ลูกรักบี้", },
+  hexPrism: {
+    th: "ปริซึมหกเหลี่ยม", color: "#34d399", geometryType: "hexPrism", flatShading: true,
+    faces: 8, edges: 18, vertices: 12,
+    formulaTitle: "ปริซึมหกเหลี่ยมด้านเท่า",
+    formulas: (x, y, z) => {
+      const s = x / 2, h = y;
+      const baseArea = (3 * Math.sqrt(3) / 2) * s * s;
+      return [
+        ["ด้านฐาน (s) และความสูง (h)", `s = X/2 = ${fmt(s)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["พื้นที่ฐาน (A)", `A = (3√3/2)s² = ${fmt(baseArea)} หน่วย²`],
+        ["ปริมาตร (V)", `V = A×h = ${fmt(baseArea)} × ${fmt(h)} = ${fmt(baseArea*h)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = 2A + 6sh = ${fmt(2*baseArea + 6*s*h)} หน่วย²`],
+      ];
+    },
+    description: `ปริซึมหกเหลี่ยมมีฐานเป็นรูปหกเหลี่ยมด้านเท่า 2 ฐาน และผิวข้าง 6 ผืน สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นหกเหลี่ยมสม่ำเสมอ) แกน Y คือความสูงของปริซึม`,
+    examples: "ดินสอไม้ (บางแบบ), น็อตหกเหลี่ยม, เสาหกเหลี่ยมตกแต่ง",
+  },
+  pyramid: {
+    th: "พีระมิด", color: "#fbbf24", geometryType: "pyramid", flatShading: true,
+    faces: 5, edges: 8, vertices: 5,
+    formulaTitle: "พีระมิดฐานสี่เหลี่ยมจัตุรัส",
+    formulas: (x, y, z) => {
+      const a = x, h = y;
+      const slant = Math.sqrt((a/2)**2 + h**2);
+      const baseArea = a * a;
+      const surface = baseArea + 2 * a * slant;
+      const volume = (1/3) * baseArea * h;
+      return [
+        ["ด้านฐาน (a) และความสูง (h)", `a = X = ${fmt(a)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ความสูงเอียง (l)", `l = √((a/2)² + h²) = ${fmt(slant)} หน่วย`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = a² + 2al = ${fmt(surface)} หน่วย²`],
+        ["ปริมาตร (V)", `V = (1/3)a²h = ${fmt(volume)} หน่วย³`],
+      ];
+    },
+    description: `พีระมิดฐานสี่เหลี่ยมมีฐานเป็นสี่เหลี่ยมจัตุรัส 1 ฐาน และหน้าสามเหลี่ยม 4 หน้าบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นสี่เหลี่ยมจัตุรัส) แกน Y คือความสูงของพีระมิด`,
+    examples: "พีระมิดอียิปต์, หลังคาทรงพีระมิด, ยอดตึกบางแบบ",
+  },
+  cylinder: {
+    th: "ทรงกระบอก", color: "#a78bfa", geometryType: "cylinder", flatShading: false,
+    faces: 3, edges: 2, vertices: 0,
+    formulaTitle: "ทรงกระบอก",
+    formulas: (x, y, z) => {
+      const r = x / 2, h = y;
+      const volume = Math.PI * r * r * h;
+      const surface = 2 * Math.PI * r * (r + h);
+      return [
+        ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ปริมาตร (V)", `V = πr²h = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = 2πr(r+h) = ${fmt(surface)} หน่วย²`],
+      ];
+    },
+    description: `ทรงกระบอกมีฐานเป็นวงกลม 2 ฐานขนานกัน และผิวข้างโค้งเรียบ สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกระบอก`,
+    examples: "กระป๋องน้ำอัดลม, ท่อ PVC, แก้วน้ำทรงกระบอก",
+  },
+  cone: {
+    th: "ทรงกรวย", color: "#fb7185", geometryType: "cone", flatShading: false,
+    faces: 2, edges: 1, vertices: 1,
+    formulaTitle: "ทรงกรวย",
+    formulas: (x, y, z) => {
+      const r = x / 2, h = y;
+      const slant = Math.sqrt(r*r + h*h);
+      const volume = (1/3) * Math.PI * r * r * h;
+      const surface = Math.PI * r * (r + slant);
+      return [
+        ["รัศมี (r) และความสูง (h)", `r = X/2 = ${fmt(r)} หน่วย, h = Y = ${fmt(h)} หน่วย`],
+        ["ความสูงเอียง (l)", `l = √(r² + h²) = ${fmt(slant)} หน่วย`],
+        ["ปริมาตร (V)", `V = (1/3)πr²h = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิวทั้งหมด (S)", `S = πr(r+l) = ${fmt(surface)} หน่วย²`],
+      ];
+    },
+    description: `ทรงกรวยมีฐานเป็นวงกลม 1 ฐาน และผิวข้างโค้งเรียวไปบรรจบที่ยอดแหลม สูตรคำนวณจะแม่นยำเมื่อกำหนดแกน X และ Z เท่ากัน (ฐานเป็นวงกลม) แกน Y คือความสูงของทรงกรวย`,
+    examples: "ไอศกรีมโคน, หมวกปาร์ตี้, กรวยจราจร",
+  },
+  sphere: {
+    th: "ทรงกลม / ทรงรี", color: "#38bdf8", geometryType: "sphere", flatShading: false,
+    faces: 1, edges: 0, vertices: 0,
+    formulaTitle: "ทรงกลม / ทรงรี",
+    formulas: (x, y, z) => {
+      const a = x/2, b = y/2, c = z/2;
+      const volume = (4/3) * Math.PI * a * b * c;
+      const isSphere = (Math.abs(x-y) < 0.001 && Math.abs(y-z) < 0.001);
+      if (isSphere) {
+        const r = a;
+        return [
+          ["รัศมี (r)", `r = X/2 = ${fmt(r)} หน่วย`],
+          ["ปริมาตร (V)", `V = (4/3)πr³ = ${fmt(volume)} หน่วย³`],
+          ["พื้นที่ผิวทั้งหมด (S)", `S = 4πr² = ${fmt(4*Math.PI*r*r)} หน่วย²`],
+        ];
+      }
+      const p = 1.6075;
+      const surfaceApprox = 4 * Math.PI * Math.pow((Math.pow(a*b,p) + Math.pow(a*c,p) + Math.pow(b*c,p)) / 3, 1/p);
+      return [
+        ["ครึ่งแกน (semi-axis) a, b, c", `a = X/2 = ${fmt(a)}, b = Y/2 = ${fmt(b)}, c = Z/2 = ${fmt(c)} หน่วย`],
+        ["ปริมาตร (V)", `V = (4/3)πabc = ${fmt(volume)} หน่วย³`],
+        ["พื้นที่ผิว โดยประมาณ (S)", `S ≈ ${fmt(surfaceApprox)} หน่วย² (สูตรประมาณของ Knud Thomsen)`],
+      ];
+    },
+    description: `ทรงกลม/ทรงรีคือรูปทรงพื้นผิวโค้งต่อเนื่อง หากกำหนดแกน X, Y, Z เท่ากันทั้งหมดจะได้ทรงกลมสมบูรณ์ หากตั้งไม่เท่ากันจะกลายเป็นทรงรี (Ellipsoid) รูปทรงนี้ไม่มีรูปคลี่ (net) เนื่องจากพื้นผิวโค้งต่อเนื่องไม่สามารถคลี่ออกเป็นระนาบได้`,
+    examples: "ลูกบอล, ลูกโลก, ไข่, ลูกรักบี้",
+  },
 };
 const presetOrder = ["box", "hexPrism", "pyramid", "cylinder", "cone", "sphere"];
 
-// การจัดการสถานะแท็บและปุ่ม
 const shapeOrder = ["cube", "custom"];
 const shapeLabels = { cube: "ลูกบาศก์", custom: "สร้างโมเดลเรขาคณิต 3 มิติ" };
 
-let currentShape = "cube";      
+let currentShape = "cube";       // "cube" | "custom"
 window.currentShape = currentShape;
-let currentPreset = null;        
+let currentPreset = null;        // ต้องเลือกก่อนถึงจะกำหนดแกนได้ (ขั้นที่ 1)
 let labelsOn = true;
 const customAxis = { x: 3, y: 3, z: 3 };
 
-/* ---------- สร้างปุ่มแท็บหลักแบบไดนามิก ---------- */
+/* ---------- แท็บหลัก ---------- */
 const tabsEl = document.getElementById('shapeTabs');
 shapeOrder.forEach(id => {
   const b = document.createElement('button');
@@ -619,7 +712,7 @@ shapeOrder.forEach(id => {
   tabsEl.appendChild(b);
 });
 
-/* ---------- สร้างปุ่มเลือก Preset รูปทรง (ขั้นที่ 1) ---------- */
+/* ---------- แถบเลือกรูปทรงสำเร็จรูป (อยู่ในแผง eqPanel) — ขั้นที่ 1 ---------- */
 const presetRowEl = document.getElementById('presetRow');
 presetOrder.forEach(id => {
   const b = document.createElement('button');
@@ -630,7 +723,6 @@ presetOrder.forEach(id => {
   presetRowEl.appendChild(b);
 });
 
-// ฟังก์ชันอัปเดตหัวข้อและปุ่มเมื่อมีการสลับโหมด
 function updateEqPanelTitle() {
   if (currentPreset) {
     document.getElementById('eqPanelTitle').textContent = `📐 สร้างโมเดล — ${PRESETS[currentPreset].th}`;
@@ -639,14 +731,12 @@ function updateEqPanelTitle() {
   }
 }
 
-// ตรวจสอบว่าโมเดลปัจุบันรองรับรูปคลี่หรือไม่ (ทรงกลมไม่รองรับ)
 function netSupported() {
   if (currentShape === 'cube') return true;
   if (currentShape === 'custom') return !!currentPreset && currentPreset !== 'sphere';
   return false;
 }
 
-// เปิด/ปิดปุ่มต่างๆ ด้านล่าง (สูตร, ข้อมูล, รูปคลี่) ขึ้นกับว่ามีโมเดลถูกสร้างอยู่หรือไม่
 function updateActionButtonsState() {
   const hasModel = (currentShape === 'cube') || (currentShape === 'custom' && !!currentPreset);
   document.getElementById('btnFormula').disabled = !hasModel;
@@ -654,7 +744,6 @@ function updateActionButtonsState() {
   document.getElementById('btnNet').disabled = !netSupported();
 }
 
-// ฟังก์ชันเลือกโหมดหลัก (ลูกบาศก์ตัวอย่าง หรือ สร้างเอง)
 function selectShape(id) {
   currentShape = id;
   window.currentShape = id;
@@ -662,7 +751,7 @@ function selectShape(id) {
     el.classList.toggle('active', el.dataset.id === id);
   });
 
-  snapCloseNetIfOpen(); // ปิดรูปคลี่ทันที
+  snapCloseNetIfOpen();
 
   document.getElementById('controls').style.display = (id === 'cube') ? 'flex' : 'none';
 
@@ -673,6 +762,7 @@ function selectShape(id) {
     updateEqPanelTitle();
     document.getElementById('eqPanel').classList.add('open');
     if (currentPreset) {
+      // เคยเลือกรูปทรงไว้แล้วในเซสชันนี้ — แสดงขั้นที่ 2 ต่อเลย
       document.querySelectorAll('.presetPill').forEach(el => {
         el.classList.toggle('active', el.dataset.id === currentPreset);
       });
@@ -681,6 +771,7 @@ function selectShape(id) {
       document.getElementById('selectedShapeTag').textContent = '✓ รูปทรงที่เลือก: ' + PRESETS[currentPreset].th;
       renderCustomShape();
     } else {
+      // ยังไม่ได้เลือกรูปทรง — ต้องเลือกก่อน (ขั้นที่ 1)
       document.querySelectorAll('.presetPill').forEach(el => el.classList.remove('active'));
       document.getElementById('eqSelectHint').style.display = 'block';
       document.getElementById('eqAxisSection').classList.remove('open');
@@ -695,7 +786,6 @@ function selectShape(id) {
   }
 }
 
-// ฟังก์ชันเมื่อผู้ใช้กดเลือก Preset รูปทรง
 function selectPreset(id) {
   currentPreset = id;
   document.querySelectorAll('.presetPill').forEach(el => {
@@ -711,7 +801,8 @@ function selectPreset(id) {
   updateEqPanelTitle();
   clearAxisErrors();
 
-  renderCustomShape(); // สร้างและแสดงโมเดลทันทีด้วยค่าแกนปัจจุบัน
+  // ขั้นที่ 2: แสดงโมเดลของรูปทรงที่เลือกไว้ทันที (ด้วยขนาดแกนปัจจุบัน)
+  renderCustomShape();
   updateActionButtonsState();
   resetTransform();
   if (sheet.classList.contains('open') && sheet.dataset.kind) {
@@ -719,7 +810,6 @@ function selectPreset(id) {
   }
 }
 
-// ล้างโมเดลออกจากฉากตอนที่ผู้ใช้กำลังจะเลือกรูปทรงใหม่
 function clearModelForSelection() {
   snapCloseNetIfOpen();
   netPanelsData = null;
@@ -730,25 +820,31 @@ function clearModelForSelection() {
   group.appendChild(hintEntity);
 }
 
-/* ------------ ตัวสร้างรูปทรง 3 มิติพื้นฐานด้วย Three.js ------------ */
+/* ------------ Unit geometry builders (size 1, centered at origin) ------------ */
 function createUnitGeometry(type) {
   const THREE = AFRAME.THREE;
   switch (type) {
-    case 'box': return new THREE.BoxGeometry(1, 1, 1);
-    case 'hexPrism': return new THREE.CylinderGeometry(0.5, 0.5, 1, 6, 1, false);
+    case 'box':
+      return new THREE.BoxGeometry(1, 1, 1);
+    case 'hexPrism':
+      return new THREE.CylinderGeometry(0.5, 0.5, 1, 6, 1, false);
     case 'pyramid': {
       const g = new THREE.ConeGeometry(0.5, 1, 4, 1, false);
-      g.rotateY(Math.PI / 4); // หมุนฐานให้ตรงกับแกน
+      g.rotateY(Math.PI / 4);
       return g;
     }
-    case 'cylinder': return new THREE.CylinderGeometry(0.5, 0.5, 1, 48, 1, false);
-    case 'cone': return new THREE.ConeGeometry(0.5, 1, 48, 1, false);
-    case 'sphere': return new THREE.SphereGeometry(0.5, 48, 32);
-    default: return new THREE.BoxGeometry(1, 1, 1);
+    case 'cylinder':
+      return new THREE.CylinderGeometry(0.5, 0.5, 1, 48, 1, false);
+    case 'cone':
+      return new THREE.ConeGeometry(0.5, 1, 48, 1, false);
+    case 'sphere':
+      return new THREE.SphereGeometry(0.5, 48, 32);
+    default:
+      return new THREE.BoxGeometry(1, 1, 1);
   }
 }
 
-/* ---------- 1) เรนเดอร์ลูกบาศก์ตัวอย่าง (มีขนาดและข้อความตายตัว) ---------- */
+/* ---------- 1) วาดลูกบาศก์ตัวอย่าง (ขนาดคงที่ ไม่ผูกกับแกน) ---------- */
 function renderCubeShape() {
   const THREE = AFRAME.THREE;
   const group = document.getElementById('modelGroup');
@@ -767,7 +863,6 @@ function renderCubeShape() {
   mesh.receiveShadow = true;
   entity.setObject3D('mesh', mesh);
 
-  // สร้างป้ายกำกับข้อความ (หน้า, ขอบ, จุดยอด)
   const labelsEntity = document.createElement('a-entity');
   labelsEntity.classList.add('labels');
   labelsEntity.setAttribute('visible', labelsOn);
@@ -788,14 +883,13 @@ function renderCubeShape() {
   netPanelsData = getNetPanels('box', 2, 2, 2, CUBE_SHAPE.color);
 }
 
-/* ---------- 2) เรนเดอร์โมเดลสร้างเองตามค่าแกน X Y Z ---------- */
+/* ---------- 2) วาดรูปทรงสำเร็จรูปจากแกน X Y Z ที่ผู้ใช้กำหนด ---------- */
 function buildCustomShape(presetId, x, y, z) {
   const THREE = AFRAME.THREE;
   const preset = PRESETS[presetId];
   const group = document.getElementById('modelGroup');
   group.innerHTML = '';
 
-  // สร้างรูปทรงและ Scale ตาม X Y Z
   const geometry = createUnitGeometry(preset.geometryType);
   geometry.scale(x, y, z);
   geometry.computeVertexNormals();
@@ -819,7 +913,6 @@ function buildCustomShape(presetId, x, y, z) {
   mesh.receiveShadow = true;
   entity.setObject3D('mesh', mesh);
 
-  // ป้ายกำกับจะแสดงความยาวแกน X, Y, Z
   const labelsEntity = document.createElement('a-entity');
   labelsEntity.classList.add('labels');
   labelsEntity.setAttribute('visible', labelsOn);
@@ -837,7 +930,6 @@ function buildCustomShape(presetId, x, y, z) {
 
   netMode = false;
   updateNetButtonUI();
-  // คำนวณข้อมูลชิ้นส่วนรูปคลี่เก็บไว้รอคลี่
   netPanelsData = getNetPanels(presetId, x, y, z, preset.color);
 }
 
@@ -847,13 +939,13 @@ function renderCustomShape() {
 }
 
 /* ==================================================================
-   ระบบการทำ "รูปคลี่" (Net) ให้แอนิเมชันแตกกระจายออกเป็น 2D แบนๆ
+   รูปคลี่ (Net) — คลี่โมเดล 3 มิติจริงออกเป็นชิ้นส่วนแบนในฉาก แทนที่จะ
+   แสดงภาพประกอบ SVG แบบเดิม
    ================================================================== */
 let netMode = false;
 let netAnimating = false;
 let netPanelsData = null;
 
-// สร้างรูปทรง 2D ของชิ้นส่วน (สามเหลี่ยม)
 function triangleShapeGeometry(base, height) {
   const THREE = AFRAME.THREE;
   const shape = new THREE.Shape();
@@ -864,7 +956,6 @@ function triangleShapeGeometry(base, height) {
   return new THREE.ShapeGeometry(shape);
 }
 
-// สร้างรูปทรง 2D ชิ้นส่วน (พัด/เสี้ยววงกลม - สำหรับทรงกรวย)
 function sectorShapeGeometry(radius, angle) {
   const THREE = AFRAME.THREE;
   const shape = new THREE.Shape();
@@ -876,7 +967,6 @@ function sectorShapeGeometry(radius, angle) {
   return new THREE.ShapeGeometry(shape, 64);
 }
 
-// ดึง Geometry 2D ตามรูปแบบชิ้นส่วน
 function panelGeometry(p) {
   const THREE = AFRAME.THREE;
   switch (p.type) {
@@ -889,12 +979,11 @@ function panelGeometry(p) {
   }
 }
 
-// คำนวณตำแหน่ง 2D (แกน X, Y) ของแต่ละชิ้นส่วนบนระนาบคลี่ตามรูปทรงนั้นๆ
+/* คำนวณตำแหน่งชิ้นส่วนของรูปคลี่ (net) จากขนาดจริงของรูปทรง */
 function getNetPanels(presetId, x, y, z, colorOverride) {
-  const gap = 0.2; // ระยะห่างระหว่างชิ้น
+  const gap = 0.2;
   const color = colorOverride || (PRESETS[presetId] ? PRESETS[presetId].color : '#e2e8f0');
 
-  // ตรรกะคณิตศาสตร์สำหรับหาตำแหน่งแต่ละแผ่น 
   if (presetId === 'box') {
     return [
       { type: 'rect', w: x, h: y, pos: [0, 0], color },
@@ -905,6 +994,7 @@ function getNetPanels(presetId, x, y, z, colorOverride) {
       { type: 'rect', w: x, h: y, pos: [(x/2 + gap + z/2) + (z/2 + gap + x/2), 0], color },
     ];
   }
+
   if (presetId === 'hexPrism') {
     const s = x / 2, h = y;
     const panels = [];
@@ -916,6 +1006,7 @@ function getNetPanels(presetId, x, y, z, colorOverride) {
     panels.push({ type: 'hex', r: s, pos: [firstX, -(h/2 + gap + s)], color });
     return panels;
   }
+
   if (presetId === 'pyramid') {
     const a = x, h = y;
     const l = Math.sqrt((a/2)**2 + h**2);
@@ -927,6 +1018,7 @@ function getNetPanels(presetId, x, y, z, colorOverride) {
       { type: 'tri', w: a, h: l, rotZ: -Math.PI/2, pos: [(a/2 + gap), 0], color },
     ];
   }
+
   if (presetId === 'cylinder') {
     const r = x / 2, h = y;
     const circumference = 2 * Math.PI * r;
@@ -936,6 +1028,7 @@ function getNetPanels(presetId, x, y, z, colorOverride) {
       { type: 'circle', r, pos: [0, -(h/2 + gap + r)], color },
     ];
   }
+
   if (presetId === 'cone') {
     const r = x / 2, h = y;
     const l = Math.sqrt(r*r + h*h);
@@ -949,7 +1042,6 @@ function getNetPanels(presetId, x, y, z, colorOverride) {
   return null; // ทรงกลม/ทรงรี ไม่มีรูปคลี่
 }
 
-// อนิเมชันการคลี่ (Easing function)
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
 function animatePanels(items, duration, onDone) {
@@ -958,7 +1050,6 @@ function animatePanels(items, duration, onDone) {
     const t = Math.min(1, (now - start) / duration);
     const e = easeOutCubic(t);
     items.forEach(it => {
-      // Lerp จากจุดกำเนิดไปยังเป้าหมาย
       const sx = it.startPos[0] + (it.target[0] - it.startPos[0]) * e;
       const sy = it.startPos[1] + (it.target[1] - it.startPos[1]) * e;
       it.mesh.position.set(sx, sy, 0);
@@ -972,7 +1063,6 @@ function animatePanels(items, duration, onDone) {
   requestAnimationFrame(step);
 }
 
-// อัปเดต UI ของปุ่มรูปคลี่
 function updateNetButtonUI() {
   const btn = document.getElementById('btnNet');
   btn.classList.toggle('active', netMode);
@@ -981,7 +1071,7 @@ function updateNetButtonUI() {
 }
 
 function snapCloseNetIfOpen() {
-  // บังคับปิดรูปคลี่ทันที (ข้ามแอนิเมชัน) ใช้ตอนสลับแท็บ
+  // ปิดโหมดคลี่ทันที (ไม่มีอนิเมชัน) เวลาสลับรูปทรง/แท็บ เพื่อไม่ให้ค้างสถานะผิด
   netMode = false;
   netAnimating = false;
   const group = document.getElementById('modelGroup');
@@ -995,7 +1085,6 @@ function snapCloseNetIfOpen() {
   updateNetButtonUI();
 }
 
-// ฟังก์ชันสลับการคลี่/ประกอบโมเดล พร้อมแอนิเมชัน
 function toggleNet() {
   if (netAnimating || !netPanelsData) return;
   const group = document.getElementById('modelGroup');
@@ -1009,7 +1098,7 @@ function toggleNet() {
   netAnimating = true;
 
   if (netMode) {
-    // คลี่ออก: สร้างชิ้นส่วนซ้อนตรงกลาง แล้วกระจายออกไปจุดเป้าหมาย (target)
+    // สร้างชิ้นส่วนใหม่ตรงกลาง แล้วอนิเมทให้กระจายออกเป็นรูปคลี่จริง
     netGroupEntity.innerHTML = '';
     const items = netPanelsData.map(p => {
       const geo = panelGeometry(p);
@@ -1026,13 +1115,12 @@ function toggleNet() {
       ent.setObject3D('mesh', mesh);
       return { mesh, startPos: [0, 0], target: p.pos };
     });
-    // ซ่อนโมเดลทึบ
     solidEntity.setAttribute('visible', 'false');
     if (labelsEntity) labelsEntity.setAttribute('visible', 'false');
     netGroupEntity.setAttribute('visible', 'true');
     animatePanels(items, 650, () => { netAnimating = false; });
   } else {
-    // ประกอบเข้า: ดึงชิ้นส่วนกลับมาที่ [0,0] แล้วแสดงโมเดลทึบ
+    // อนิเมทชิ้นส่วนกลับเข้าศูนย์กลาง แล้วประกอบกลับเป็นโมเดลทึบ
     const meshes = Array.from(netGroupEntity.children).map(ent => ent.getObject3D('mesh')).filter(Boolean);
     const items = meshes.map(mesh => ({ mesh, startPos: [mesh.position.x, mesh.position.y], target: [0, 0] }));
     animatePanels(items, 450, () => {
@@ -1045,9 +1133,6 @@ function toggleNet() {
   }
 }
 
-/* ==================================================================
-   การควบคุมโมเดลด้วยนิ้ว/เมาส์ (การหมุนและการซูม)
-   ================================================================== */
 const gestureLayer = document.getElementById('gestureLayer');
 const modelGroup = () => document.getElementById('modelGroup');
 let rotX = 15, rotY = -25;
@@ -1067,7 +1152,6 @@ function resetTransform() {
   applyTransform();
 }
 
-// เริ่มจับการลากเมาส์หรือนิ้ว
 gestureLayer.addEventListener('pointerdown', e => {
   if (e.target.closest('#topbar, #controls, #sheet, #eqPanel, #arFloatingControls')) return;
   dragging = true; lastX = e.clientX; lastY = e.clientY;
@@ -1075,7 +1159,6 @@ gestureLayer.addEventListener('pointerdown', e => {
   hideHintSoon();
 });
 
-// เลื่อนเมาส์หรือนิ้วเพื่อคำนวณองศาหมุนโมเดล
 gestureLayer.addEventListener('pointermove', e => {
   if (!dragging) return;
   const dx = e.clientX - lastX, dy = e.clientY - lastY;
@@ -1087,14 +1170,12 @@ gestureLayer.addEventListener('pointermove', e => {
 
 window.addEventListener('pointerup', () => { dragging = false; });
 
-// ใช้สกอร์ลเมาส์ซูมเข้า/ออก
 gestureLayer.addEventListener('wheel', e => {
   e.preventDefault();
   window.currentScaleVal = clamp(window.currentScaleVal - e.deltaY * 0.0015, 0.2, 5.0);
   applyTransform();
 }, { passive: false });
 
-// แตะพื้นที่ว่างในโหมด AR เพื่อย้ายโมเดลไปยังจุดที่ชี้กล้องไป
 gestureLayer.addEventListener('click', (e) => {
   if (e.target.closest('#topbar, #controls, #sheet, #eqPanel, #arFloatingControls')) return;
   if (!window.arModeActive) return;
@@ -1108,18 +1189,17 @@ gestureLayer.addEventListener('click', (e) => {
 
   const dir = new AFRAME.THREE.Vector3();
   camera3D.getWorldDirection(dir);
-  dir.multiplyScalar(-2.0); // ระยะหน้ากล้อง 2 เมตร
+  dir.multiplyScalar(-2.0);
 
   const targetPos = new AFRAME.THREE.Vector3();
   camera3D.getWorldPosition(targetPos);
   targetPos.add(dir);
 
-  targetPos.y = -0.5; // ปรับให้อยู่ระดับต่ำลงเล็กน้อย
+  targetPos.y = -0.5;
 
   anchor3D.position.copy(targetPos);
 });
 
-// ซ่อนข้อความแนะนำ
 function hideHintSoon() {
   const hint = document.getElementById('gestureHint');
   if(hint) {
@@ -1128,11 +1208,6 @@ function hideHintSoon() {
   }
 }
 
-/* ==================================================================
-   การจัดการปุ่มและ Bottom Sheet เมนูด้านล่าง
-   ================================================================== */
-
-// ปุ่มเปิด/ปิด ป้ายกำกับ
 function applyLabelsVisibility() {
   const g = modelGroup();
   const labelsEl = g ? g.querySelector('.labels') : null;
@@ -1146,7 +1221,6 @@ document.getElementById('btnLabels').onclick = (e) => {
 
 const modeBtn = document.getElementById('modeBtn');
 
-// แจ้งเตือนเมื่ออุปกรณ์ไม่รองรับ AR หรือเปิดจาก In-app browser (เช่น LINE/FB)
 function showArUnsupportedMessage(extra) {
   alert(
     '⚠️ ไม่สามารถเข้าสู่โหมด AR ได้บนอุปกรณ์/เบราว์เซอร์นี้\n\n' +
@@ -1158,7 +1232,7 @@ function showArUnsupportedMessage(extra) {
   );
 }
 
-// ตรวจสอบความพร้อมของ WebXR ล่วงหน้า
+// ตรวจสอบล่วงหน้าว่าอุปกรณ์รองรับ WebXR AR หรือไม่ ถ้าไม่รองรับให้ปิดปุ่มและแจ้งเตือน
 if (navigator.xr && navigator.xr.isSessionSupported) {
   navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
     if (!supported) {
@@ -1167,7 +1241,6 @@ if (navigator.xr && navigator.xr.isSessionSupported) {
   }).catch(() => {});
 }
 
-// เมื่อกดปุ่มเข้าโหมด AR
 modeBtn.onclick = () => {
   const scene = document.querySelector('a-scene');
   if (scene.is('ar-mode')) {
@@ -1197,7 +1270,6 @@ modeBtn.onclick = () => {
 const sheet = document.getElementById('sheet');
 const sheetBody = document.getElementById('sheetBody');
 
-// ฟังก์ชันแสดงแผ่นข้อมูลจากด้านล่างจอ (Bottom Sheet)
 function openSheet(html, kind) {
   sheetBody.innerHTML = html;
   sheet.dataset.kind = kind;
@@ -1205,7 +1277,6 @@ function openSheet(html, kind) {
 }
 document.getElementById('sheetClose').onclick = () => sheet.classList.remove('open');
 
-// ตัวจัดการว่าเปิดเนื้อหาประเภทไหน (สูตร, ข้อมูล, คำแนะนำ)
 function openContentFor(kind) {
   if (kind === 'help') { openHelpSheet(); return; }
   if (currentShape === 'cube') { openCubeContent(kind); }
@@ -1256,13 +1327,12 @@ function openHelpSheet() {
     <p>กดปุ่ม "✨ เข้าสู่โหมด AR" เพื่อส่องกล้องในโลกจริง แตะพื้นที่บนหน้าจอเพื่อปักหมุดวางโมเดล คุณสามารถเดินอ้อมดูโมเดลได้ 360 องศา หากเดินถอยห่างเกิน 3 เมตร โมเดลจะค่อยๆ เดินตามคุณมาอัตโนมัติ</p>`, 'help');
 }
 
-// ผูกฟังก์ชันเข้ากับปุ่มเมนู
 document.getElementById('btnFormula').onclick = () => openContentFor('formula');
 document.getElementById('btnInfo').onclick = () => openContentFor('info');
 document.getElementById('btnNet').onclick = () => toggleNet();
 document.getElementById('helpBtn').onclick = () => openContentFor('help');
 
-/* ------------ ปุ่มเมนูขณะอยู่ในโหมด AR ------------ */
+/* ------------ ปุ่มฟันเฟือง / ออกจาก AR ลอยมุมขวาบน ------------ */
 const arGearBtn = document.getElementById('arGearBtn');
 const arExitBtn = document.getElementById('arExitBtn');
 const arMenu = document.getElementById('arMenu');
@@ -1279,9 +1349,7 @@ arExitBtn.onclick = () => {
   arGearBtn.classList.remove('spin');
 };
 
-/* ==================================================================
-   ส่วนตรวจสอบความถูกต้องช่องกรอกแกน (X, Y, Z) (Validation)
-   ================================================================== */
+/* ------------ Axis input validation (1–10 units per axis) ------------ */
 const AXIS_MIN = 1, AXIS_MAX = 10;
 const axisInputIds = ['eqX', 'eqY', 'eqZ'];
 
@@ -1313,7 +1381,6 @@ function validateAllAxes() {
   return allOk;
 }
 
-// เช็คแบบ Real-time เวลาพิมพ์ค่าในช่อง Input
 axisInputIds.forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     const el = document.getElementById(id);
@@ -1328,7 +1395,6 @@ axisInputIds.forEach(id => {
   });
 });
 
-// กดปุ่มยืนยันเพื่อสร้างโมเดลใหม่ตามค่าแกนที่กำหนด
 function generateFromAxisInputs() {
   if (!currentPreset) return;
   if (!validateAllAxes()) return;
@@ -1343,13 +1409,11 @@ function generateFromAxisInputs() {
   genBtn.disabled = true;
   genBtn.textContent = '⏳ กำลังสร้าง...';
 
-  // ใช้ setTimeout เพื่อให้ปุ่มขึ้นสถานะโหลด (ไม่งั้นจะบล็อก UI)
   setTimeout(() => {
     try {
       buildCustomShape(currentPreset, x, y, z);
       resetTransform();
       updateActionButtonsState();
-      // อัปเดตสูตรที่กำลังแสดงอยู่ (ถ้ามี)
       if (sheet.classList.contains('open') && sheet.dataset.kind) {
         openContentFor(sheet.dataset.kind);
       }
@@ -1369,7 +1433,6 @@ document.getElementById('eqPanelClose').onclick = () => {
   document.getElementById('eqPanel').classList.remove('open');
 };
 
-// ================= เริ่มต้นการทำงาน (Initial Setup) =================
 renderCubeShape();
 updateActionButtonsState();
 applyTransform();
