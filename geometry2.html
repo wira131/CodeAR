@@ -28,7 +28,7 @@
   html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:'Prompt',sans-serif;background:var(--bg-0);color:var(--text);}
   button{font-family:inherit;}
 
-  .app{display:flex;flex-direction:column;width:100vw;height:100vh;}
+  .app{display:flex;flex-direction:column;width:100vw;height:100vh;height:100dvh;}
 
   /* ---------- LOGIN / SPLASH SCREEN ---------- */
   .app.login-active .topbar,
@@ -37,7 +37,9 @@
   #loginScreen{
     position:absolute;inset:0;z-index:90;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:20px;text-align:center;cursor:pointer;
+    gap:40px;
+    padding:20px;padding-bottom:calc(28px + env(safe-area-inset-bottom));
+    text-align:center;cursor:pointer;
     transition:opacity .45s ease;
   }
   #loginScreen.fade-out{opacity:0;pointer-events:none;}
@@ -50,8 +52,7 @@
   }
   #loginScreen .login-sub{font-size:.85rem;color:var(--text-dim);font-weight:300;}
   .login-enter-btn{
-    position:absolute;left:50%;bottom:64px;transform:translateX(-50%);
-    display:inline-flex;align-items:center;gap:10px;
+    display:inline-flex;align-items:center;gap:10px;flex-shrink:0;
     font-size:1.05rem;color:#93c5fd;font-weight:400;
     padding:13px 30px;background:rgba(59,130,246,.12);
     border:1px solid rgba(96,165,250,.32);border-radius:30px;
@@ -63,7 +64,7 @@
   .app.login-active .idle-overlay{display:none;}
   @media (max-width:760px){
     #loginScreen h1{font-size:1.8rem;}
-    .login-enter-btn{bottom:36px;}
+    #loginScreen{gap:28px;}
   }
 
   /* ---------- TOP BAR ---------- */
@@ -104,7 +105,7 @@
   .ar-btn:hover{transform:translateY(-1px);}
 
   /* ---------- BODY LAYOUT ---------- */
-  .body{flex:1;display:flex;min-height:0;}
+  .body{flex:1;display:flex;min-height:0;position:relative;}
 
   /* ---------- SIDEBAR ---------- */
   .sidebar{
@@ -115,6 +116,18 @@
     padding:16px 14px;
     overflow:hidden;
   }
+  .sidebar-header{display:none;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .sidebar-header span{font-size:.86rem;font-weight:500;}
+  .sidebar-close{
+    width:30px;height:30px;border-radius:50%;border:none;
+    background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;font-size:1rem;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sidebar-backdrop{
+    position:absolute;inset:0;z-index:24;background:rgba(0,0,0,.55);
+    display:none;
+  }
+  .sidebar-backdrop.show{display:block;}
   .dim-tabs{
     display:flex;background:rgba(255,255,255,.04);
     border-radius:12px;padding:4px;gap:4px;margin-bottom:16px;flex-shrink:0;
@@ -322,21 +335,25 @@
   @media (max-width:760px){
     .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:25;transform:translateX(-100%);transition:transform .25s ease;box-shadow:12px 0 30px rgba(0,0,0,.4);}
     .sidebar.open{transform:translateX(0);}
+    .sidebar-header{display:flex;}
     .toolbar{gap:6px;bottom:14px;}
     .tool-btn{padding:9px 12px;font-size:.72rem;}
     .tool-btn span.tbl-txt{display:none;}
     .side-panel{width:100vw;max-width:100vw;}
 
-    /* topbar: title/subtitle + 2 icons + AR button was crowding and wrapping on
-       narrow screens — trim it down to a single tight row */
+    /* topbar: title/subtitle + icons + AR button was crowding and overlapping on
+       narrow screens — give the title a real min-width:0 flex chain so it
+       truncates instead of overflowing into the action icons */
     .topbar{padding:10px 10px;gap:8px;}
-    .brand{gap:8px;min-width:0;}
-    .brand-mark{width:26px;height:26px;}
-    .brand h1{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .brand{gap:8px;min-width:0;flex:1 1 auto;}
+    .brand-mark{width:24px;height:24px;flex-shrink:0;}
+    .brand-text{min-width:0;overflow:hidden;flex:1 1 auto;}
+    .brand h1{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .brand span{display:none;}
-    .topbar-actions{gap:6px;flex-shrink:0;}
-    .icon-btn{width:34px;height:34px;}
-    .ar-btn{padding:9px 12px;gap:0;}
+    .topbar-actions{gap:5px;flex-shrink:0;}
+    #helpBtn{display:none;}
+    .icon-btn{width:32px;height:32px;}
+    .ar-btn{padding:8px 10px;gap:0;}
     .ar-btn .ar-label{display:none;}
     .ar-exit-float{padding:9px 14px;font-size:.76rem;}
   }
@@ -351,18 +368,21 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="brand-mark"></div>
-      <div>
+      <div class="brand-text">
         <h1>Geometry Learning with WEB AR</h1>
         <span>สื่อการเรียนรู้เรขาคณิตด้วยเทคโนโลยีความเป็นจริงเสริม</span>
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" title="ช่วยเหลือ">
+      <button class="icon-btn" id="helpBtn" title="ช่วยเหลือ">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.2a2.5 2.5 0 0 1 4.9.7c0 1.6-2.2 1.6-2.4 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>
       </button>
-      <button class="ar-btn" id="arBtn" title="เข้าสู่โหมด AR">
+      <button class="icon-btn" id="cameraBtn" title="โหมดกล้อง — ซ้อนโมเดลบนภาพจากกล้อง">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="14" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+      <button class="ar-btn" id="arBtn" title="โหมด AR จริง (ทดลอง — รองรับ Chrome บน Android)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2L12 2z" fill="#fff"/></svg>
-        <span class="ar-label">เข้าสู่โหมด AR</span>
+        <span class="ar-label">โหมด AR</span>
       </button>
     </div>
   </header>
@@ -370,6 +390,10 @@
   <div class="body">
 
     <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>เมนูรูปทรง</span>
+        <button class="sidebar-close" id="sidebarClose">✕</button>
+      </div>
       <div class="dim-tabs">
         <button class="dim-tab active" data-dim="3d">โมเดล 3 มิติ</button>
         <button class="dim-tab" data-dim="2d">โมเดล 2 มิติ</button>
@@ -377,6 +401,7 @@
       <div class="sidebar-label" id="sidebarLabel">เลือกรูปทรงเพื่อเริ่มเรียนรู้</div>
       <div class="shape-list" id="shapeList"></div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main class="viewport">
       <video id="camPreview" autoplay playsinline muted></video>
@@ -1069,21 +1094,23 @@ document.getElementById('loginScreen').addEventListener('click', ()=>{
 });
 
 /* =====================================================================
-   AR MODE
-   - On devices/browsers that support WebXR immersive-ar (mainly Chrome on
-     Android), this opens a real AR session: the camera feed is rendered
-     natively by the browser and the selected model is placed in front of
-     the user in 3D space.
-   - Everywhere else (iOS Safari, in-app browsers, desktop — none of which
-     expose WebXR AR at all, a platform limitation no website can work
-     around) it falls back to a camera-preview mode: the device camera is
-     shown full-screen with the model rendered on top, still fully
-     rotate/zoom-able with touch.
-   In both cases the topbar and sidebar are hidden (see .ar-active CSS) so
-   nothing overlaps the camera view, leaving only a single "exit" button.
+   AR MODE — two separate, explicit entry points
+   - "โหมด AR" (arBtn): real WebXR immersive-ar. Only available on devices/
+     browsers that actually support it (in practice: Chrome on Android).
+     The camera feed is rendered natively by the browser/OS, not by us.
+   - "โหมดกล้อง" (cameraBtn): our own camera overlay — works everywhere a
+     browser can access the camera (including iOS Safari, which has no
+     WebXR support at all — a platform limitation, not something a website
+     can work around). The model still rotates/zooms with touch as usual.
+   Kept as two separate buttons/paths (not an automatic fallback) so a
+   failed WebXR attempt always reports back and rolls the UI back cleanly,
+   instead of silently swapping modes or leaving a blank/stuck screen.
+   In both cases the topbar/sidebar are hidden (see .ar-active CSS) so
+   nothing overlaps the view, leaving only a single "exit" button.
 ===================================================================== */
 const appEl = document.querySelector('.app');
 const arBtn = document.getElementById('arBtn');
+const cameraBtn = document.getElementById('cameraBtn');
 const arExitFloatBtn = document.getElementById('arExitFloatBtn');
 const camPreviewVideo = document.getElementById('camPreview');
 
@@ -1096,6 +1123,15 @@ function setARActive(active){
   arExitFloatBtn.style.display = active ? 'flex' : 'none';
 }
 
+function ensureAModelIsSelected(){
+  if(currentDim!=='3d'){
+    document.querySelector('.dim-tab[data-dim="3d"]').click();
+  }
+  if(!currentShapeId){
+    selectShape('cube');
+  }
+}
+
 function placeModelForAR(){
   mainGroup.position.set(0, -0.4, -1.6);
   mainGroup.scale.set(.55,.55,.55);
@@ -1106,40 +1142,48 @@ function resetModelPlacement(){
   camera.position.set(0,0,BASE_CAMERA_Z);
 }
 
-async function enterAR(){
-  if(currentDim!=='3d'){
-    document.querySelector('.dim-tab[data-dim="3d"]').click();
+/* ---- real WebXR AR ---- */
+async function enterRealAR(){
+  if(!navigator.xr || !navigator.xr.isSessionSupported){
+    alert('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับ WebXR AR (รองรับเฉพาะ Chrome บน Android)\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    return;
   }
-  if(!currentShapeId){
-    selectShape('cube');
+  let supported = false;
+  try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){ supported = false; }
+  if(!supported){
+    alert('อุปกรณ์นี้ไม่รองรับ WebXR AR\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    return;
   }
 
-  if(navigator.xr && navigator.xr.isSessionSupported){
-    let supported = false;
-    try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){ supported = false; }
-    if(supported){
-      try{
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures:['local-floor'],
-          optionalFeatures:['dom-overlay'],
-          domOverlay:{root: document.body}
-        });
-        xrSession = session;
-        renderer.xr.enabled = true;
-        renderer.xr.setReferenceSpaceType('local-floor');
-        await renderer.xr.setSession(session);
-        session.addEventListener('end', onXRSessionEnd);
-        setARActive(true);
-        placeModelForAR();
-        return;
-      }catch(err){
-        console.error('เปิด WebXR AR ไม่สำเร็จ:', err);
-        xrSession = null;
-      }
-    }
+  const proceed = confirm('กำลังจะเข้าสู่โหมด AR จริง กล้องของอุปกรณ์จะเปิดขึ้นและวางโมเดลไว้ในพื้นที่จริงรอบตัวคุณ\n\nหากหาปุ่ม "ออกจากโหมด AR" บนจอไม่เจอ ให้กดปุ่มย้อนกลับของระบบเพื่อออก\n\nดำเนินการต่อหรือไม่?');
+  if(!proceed) return;
+
+  ensureAModelIsSelected();
+
+  try{
+    const session = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures:['local'],
+      optionalFeatures:['local-floor','dom-overlay'],
+      domOverlay:{root: document.body}
+    });
+    xrSession = session;
+    renderer.xr.enabled = true;
+    try{ renderer.xr.setReferenceSpaceType('local-floor'); }
+    catch(e){ renderer.xr.setReferenceSpaceType('local'); }
+    await renderer.xr.setSession(session);
+    session.addEventListener('end', onXRSessionEnd);
+    setARActive(true);
+    placeModelForAR();
+  }catch(err){
+    console.error('เปิด WebXR AR ไม่สำเร็จ:', err);
+    // roll everything back completely — never leave a blank/stuck screen
+    if(xrSession){ try{ xrSession.end(); }catch(e){} }
+    xrSession = null;
+    renderer.xr.enabled = false;
+    resetModelPlacement();
+    setARActive(false);
+    alert('ไม่สามารถเปิดโหมด AR จริงได้บนอุปกรณ์นี้\n\nกรุณาลองใช้ปุ่ม "โหมดกล้อง" แทน');
   }
-  // ไม่รองรับ WebXR AR (เช่น iOS Safari หรือเบราว์เซอร์ในแอปแชท) — สลับไปโหมดกล้องแทน
-  startCameraFallback();
 }
 
 function onXRSessionEnd(){
@@ -1149,7 +1193,9 @@ function onXRSessionEnd(){
   setARActive(false);
 }
 
-async function startCameraFallback(){
+/* ---- camera-preview mode (our own overlay, no WebXR involved) ---- */
+async function enterCameraMode(){
+  ensureAModelIsSelected();
   try{
     camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
     camPreviewVideo.srcObject = camStream;
@@ -1157,10 +1203,10 @@ async function startCameraFallback(){
     arFallbackActive = true;
     setARActive(true);
   }catch(err){
-    alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์\n\nหมายเหตุ: โหมด AR แบบเต็มรูปแบบ (WebXR) รองรับเฉพาะ Chrome บน Android เท่านั้น อุปกรณ์อื่น เช่น iPhone/iPad จะใช้ได้เฉพาะโหมดแสดงโมเดลซ้อนภาพกล้องนี้');
+    alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์แล้วลองอีกครั้ง');
   }
 }
-function stopCameraFallback(){
+function exitCameraMode(){
   if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
   camPreviewVideo.classList.remove('show');
   camPreviewVideo.srcObject = null;
@@ -1171,10 +1217,11 @@ function stopCameraFallback(){
 
 function exitAR(){
   if(xrSession){ xrSession.end(); }
-  else if(arFallbackActive){ stopCameraFallback(); }
+  else if(arFallbackActive){ exitCameraMode(); }
 }
 
-arBtn.addEventListener('click', enterAR);
+arBtn.addEventListener('click', enterRealAR);
+cameraBtn.addEventListener('click', enterCameraMode);
 arExitFloatBtn.addEventListener('click', exitAR);
 
 /* =====================================================================
@@ -1339,6 +1386,7 @@ function selectShape(id){
   idleGroup.visible = false;
   closeSidePanel();
   resetNetView();
+  closeSidebar();
   document.querySelector('.toolbar').classList.add('show');
 
   /* ---- custom 3D model builder ---- */
@@ -1648,15 +1696,31 @@ function netSVG(id){
 /* =====================================================================
    MOBILE SIDEBAR TOGGLE
 ===================================================================== */
+const sidebarEl = document.getElementById('sidebar');
+const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+
+function openSidebar(){
+  sidebarEl.classList.add('open');
+  sidebarBackdropEl.classList.add('show');
+}
+function closeSidebar(){
+  sidebarEl.classList.remove('open');
+  sidebarBackdropEl.classList.remove('show');
+}
+function toggleSidebar(){
+  sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
 function checkMobile(){
   const isMobile = window.innerWidth<=760;
   document.getElementById('sidebarToggle').style.display = isMobile?'flex':'none';
+  if(!isMobile) closeSidebar();
 }
 window.addEventListener('resize', checkMobile);
 checkMobile();
-document.getElementById('sidebarToggle').addEventListener('click', ()=>{
-  document.getElementById('sidebar').classList.toggle('open');
-});
+document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+sidebarBackdropEl.addEventListener('click', closeSidebar);
 
 /* =====================================================================
    INIT
