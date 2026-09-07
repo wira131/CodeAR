@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Geometry Learning with WEB AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -45,7 +45,7 @@
   #loginScreen h1{
     font-size:2.6rem;font-weight:700;line-height:1.4;margin:0;max-width:760px;
     background:linear-gradient(135deg,#ffffff 0%,#60a5fa 50%,#93c5fd 100%);
-    background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     text-shadow:0 4px 20px rgba(59,130,246,.2);
   }
   #loginScreen .login-sub{font-size:.85rem;color:var(--text-dim);font-weight:300;}
@@ -101,7 +101,6 @@
     box-shadow:0 6px 18px rgba(236,72,153,.28);
     transition:transform .15s;
   }
-  .ar-btn.on{background:linear-gradient(135deg,#16a34a,#0ea5e9);}
   .ar-btn:hover{transform:translateY(-1px);}
 
   /* ---------- BODY LAYOUT ---------- */
@@ -166,23 +165,32 @@
   #three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;}
   #three-canvas.grabbing{cursor:grabbing;}
 
+  /* ---------- AR / CAMERA-FALLBACK MODE ----------
+     When active we hide the topbar and sidebar entirely so nothing overlaps
+     the camera feed / AR view — only the canvas, toolbar and exit button remain. */
+  .app.ar-active .topbar,
+  .app.ar-active .sidebar,
+  .app.ar-active .side-panel,
+  .app.ar-active .idle-overlay{display:none;}
+  .ar-exit-float{
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; z-index:40;
+    display:none; align-items:center; gap:6px;
+    background:rgba(15,23,40,.85); backdrop-filter:blur(8px);
+    border:1px solid var(--panel-border); color:#fff;
+    padding:10px 18px; border-radius:22px; font-size:.82rem; font-weight:500; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+
   /* ---------- CAMERA PREVIEW (pseudo-AR) ---------- */
   #camPreview{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;
   }
   #camPreview.show{display:block;}
-  .ar-hint{
-    position:absolute;left:50%;bottom:84px;z-index:16;transform:translateX(-50%);
-    display:none;padding:10px 16px;border-radius:22px;
-    color:#fff;background:rgba(15,23,40,.78);backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,.18);font-size:.8rem;white-space:nowrap;
-  }
-  .ar-hint.show{display:block;}
 
   .svg-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1100px;}
   .svg-stage.hidden{display:none;}
   .svg-stage svg{width:min(46vw,380px);height:min(46vw,380px);filter:drop-shadow(0 14px 26px rgba(59,130,246,.25));}
-  #svgFlip{display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;will-change:transform;cursor:grab;}
+  #svgFlip{display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;will-change:transform;cursor:grab;touch-action:none;}
   #svgFlip.grabbing{cursor:grabbing;}
 
   .idle-overlay{
@@ -202,6 +210,15 @@
     0%,100%{box-shadow:0 0 14px rgba(59,130,246,.18);}
     50%{box-shadow:0 0 24px rgba(59,130,246,.42);}
   }
+  .gesture-hint{
+    position:absolute; top:calc(16px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+    z-index:16; background:rgba(0,0,0,.55); backdrop-filter:blur(6px);
+    color:#e2e8f0; padding:8px 16px; border-radius:20px; font-size:.72rem; font-weight:300;
+    border:1px solid rgba(255,255,255,.1); white-space:nowrap; pointer-events:none;
+    transition:opacity .3s ease; opacity:1;
+  }
+  .gesture-hint.hidden{opacity:0;}
+  @media (max-width:760px){ .gesture-hint{font-size:.66rem; padding:7px 12px; white-space:normal; text-align:center; max-width:82vw;} }
 
   /* floating V/E/F chips */
   .label-layer{position:absolute;inset:0;pointer-events:none;display:none;}
@@ -224,8 +241,6 @@
   }
   .toolbar.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
   .toolbar:not(.show){transform:translateX(-50%) translateY(10px);}
-  .toolbar{max-width:calc(100vw - 28px);overflow-x:auto;scrollbar-width:none;}
-  .toolbar::-webkit-scrollbar{display:none;}
   .tool-btn{
     display:flex;align-items:center;gap:8px;
     padding:11px 18px;border-radius:24px;border:1px solid var(--panel-border);
@@ -305,28 +320,25 @@
   .axis-hint{font-size:.68rem;color:#64748b;margin-top:10px;line-height:1.55;}
 
   @media (max-width:760px){
-    .app{height:100dvh;min-height:100vh;}
-    .topbar{padding:10px 12px; padding-top:max(10px, env(safe-area-inset-top));gap:8px;}
-    .brand{min-width:0;}
-    .brand h1{max-width:150px;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .brand span{display:none;}
-    .topbar-actions{gap:6px;flex-shrink:0;}
-    #helpBtn{display:none;}
-    #cameraPreviewBtn{display:none;}
-    .ar-btn{width:46px;height:38px;padding:0;justify-content:center;font-size:0;gap:0;white-space:nowrap;}
-    .ar-btn svg{width:18px;height:18px;}
     .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:25;transform:translateX(-100%);transition:transform .25s ease;box-shadow:12px 0 30px rgba(0,0,0,.4);}
     .sidebar.open{transform:translateX(0);}
-    .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:24;background:rgba(0,0,0,.48);opacity:0;pointer-events:none;transition:opacity .25s ease;}
-    .sidebar-backdrop.show{opacity:1;pointer-events:auto;}
-    .toolbar{left:12px;right:12px;bottom:max(12px, env(safe-area-inset-bottom));width:auto;max-width:none;transform:translateY(10px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:6px;border:1px solid rgba(148,163,184,.2);border-radius:18px;background:rgba(7,11,20,.9);}
-    .toolbar.show{transform:translateY(0);}
-    .toolbar:not(.show){transform:translateY(10px);}
-    .tool-btn{width:100%;min-width:0;height:52px;padding:4px 2px;justify-content:center;flex-direction:column;gap:2px;border-radius:12px;}
+    .toolbar{gap:6px;bottom:14px;}
+    .tool-btn{padding:9px 12px;font-size:.72rem;}
     .tool-btn span.tbl-txt{display:none;}
-    .tool-btn span.tbl-txt{display:block;font-size:.58rem;line-height:1.1;white-space:nowrap;}
     .side-panel{width:100vw;max-width:100vw;}
-    .ar-hint{bottom:72px;max-width:calc(100vw - 24px);white-space:normal;text-align:center;}
+
+    /* topbar: title/subtitle + 2 icons + AR button was crowding and wrapping on
+       narrow screens — trim it down to a single tight row */
+    .topbar{padding:10px 10px;gap:8px;}
+    .brand{gap:8px;min-width:0;}
+    .brand-mark{width:26px;height:26px;}
+    .brand h1{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .brand span{display:none;}
+    .topbar-actions{gap:6px;flex-shrink:0;}
+    .icon-btn{width:34px;height:34px;}
+    .ar-btn{padding:9px 12px;gap:0;}
+    .ar-btn .ar-label{display:none;}
+    .ar-exit-float{padding:9px 14px;font-size:.76rem;}
   }
 </style>
 </head>
@@ -345,15 +357,12 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" id="helpBtn" title="ช่วยเหลือ">
+      <button class="icon-btn" title="ช่วยเหลือ">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.2a2.5 2.5 0 0 1 4.9.7c0 1.6-2.2 1.6-2.4 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>
       </button>
-      <button class="icon-btn" id="cameraPreviewBtn" title="โหมดกล้อง (พรีวิวคล้าย AR)">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="14" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
-      </button>
-      <button class="ar-btn" id="arModeBtn" type="button" title="เปิดหรือปิดโหมด AR">
+      <button class="ar-btn" id="arBtn" title="เข้าสู่โหมด AR">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2L12 2z" fill="#fff"/></svg>
-        เข้าสู่โหมด AR
+        <span class="ar-label">เข้าสู่โหมด AR</span>
       </button>
     </div>
   </header>
@@ -368,12 +377,11 @@
       <div class="sidebar-label" id="sidebarLabel">เลือกรูปทรงเพื่อเริ่มเรียนรู้</div>
       <div class="shape-list" id="shapeList"></div>
     </aside>
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main class="viewport">
       <video id="camPreview" autoplay playsinline muted></video>
       <canvas id="three-canvas"></canvas>
-      <div class="ar-hint" id="arHint">เล็งกล้องไปที่พื้น แล้วแตะเพื่อวางโมเดล</div>
+      <button id="arExitFloatBtn" class="ar-exit-float" style="display:none;">✕ ออกจากโหมด AR</button>
       <div class="svg-stage hidden" id="svgStage"><div id="svgFlip"></div></div>
 
       <div class="idle-overlay" id="idleOverlay">
@@ -383,6 +391,8 @@
       </div>
 
       <div class="label-layer" id="labelLayer"></div>
+
+      <div class="gesture-hint hidden" id="gestureHint">👆 ลากเพื่อหมุน 360° · บีบสองนิ้ว/เลื่อนล้อเมาส์เพื่อซูม</div>
 
       <div class="toolbar">
         <button class="tool-btn" data-tool="label" id="toolLabelBtn">
@@ -697,7 +707,6 @@ let customAxis = { x:3, y:3, z:3 };
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.xr.enabled = true;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45,1,.1,100);
 camera.position.set(0,0,4.6);
@@ -710,20 +719,6 @@ const faceMaterial = new THREE.MeshStandardMaterial({color:0xe7ecf6, roughness:.
 const edgeMaterialSharp = new THREE.LineBasicMaterial({color:0xcfe0ff});
 const vertexMaterial = new THREE.MeshBasicMaterial({color:0xf6b93b});
 const vertexGeo = new THREE.SphereGeometry(.045,16,16);
-
-const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(.08,.1,32),
-  new THREE.MeshBasicMaterial({color:0x7fb2ff, side:THREE.DoubleSide})
-);
-reticle.rotation.x = -Math.PI/2;
-reticle.matrixAutoUpdate = false;
-reticle.visible = false;
-scene.add(reticle);
-
-let arSession = null;
-let arHitTestSource = null;
-let arReferenceSpace = null;
-let arPlaced = false;
 
 let mainGroup = new THREE.Group(); scene.add(mainGroup);
 let idleGroup = new THREE.Group(); scene.add(idleGroup);
@@ -926,68 +921,70 @@ function buildIdleScene(){
 }
 buildIdleScene();
 
-/* ---- rotate and zoom 3D solids with mouse or touch ---- */
-let dragging=false;
-const activePointers = new Map();
-let lastPinchDistance = null;
-const MIN_CAMERA_Z = 2.2, MAX_CAMERA_Z = 12;
-
-function clampCameraZoom(z){
-  return Math.max(MIN_CAMERA_Z, Math.min(MAX_CAMERA_Z, z));
-}
-function zoomCamera(amount){
-  camera.position.z = clampCameraZoom(camera.position.z + amount);
-}
-function pointerDistance(){
-  const pointers = [...activePointers.values()];
-  if(pointers.length < 2) return null;
-  return Math.hypot(pointers[0].x-pointers[1].x, pointers[0].y-pointers[1].y);
-}
-
+/* ---- drag to rotate (3D solids) ---- */
+let dragging=false, lastX=0, lastY=0;
 canvas.addEventListener('pointerdown', e=>{
-  if(currentDim!=='3d' || !currentShapeId) return;
-  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-  canvas.setPointerCapture(e.pointerId);
-  dragging = activePointers.size === 1;
-  lastPinchDistance = pointerDistance();
-  if(dragging) canvas.classList.add('grabbing');
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.classList.add('grabbing');
+  hideGestureHint();
 });
-
-canvas.addEventListener('pointermove', e=>{
-  if(!activePointers.has(e.pointerId)) return;
-  const previous = activePointers.get(e.pointerId);
-  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-
-  if(activePointers.size >= 2){
-    const distance = pointerDistance();
-    if(lastPinchDistance !== null && distance !== null) zoomCamera((lastPinchDistance-distance)*.012);
-    lastPinchDistance = distance;
-    dragging = false;
-    canvas.classList.remove('grabbing');
-    return;
-  }
-
+window.addEventListener('pointerup', ()=>{dragging=false; canvas.classList.remove('grabbing');});
+window.addEventListener('pointermove', e=>{
   if(!dragging) return;
-  const dx=e.clientX-previous.x, dy=e.clientY-previous.y;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
   mainGroup.rotation.y += dx*.008;
-  mainGroup.rotation.x += dy*.008;
+  mainGroup.rotation.x = Math.max(-1,Math.min(1, mainGroup.rotation.x + dy*.008));
 });
 
-function stopPointer(e){
-  activePointers.delete(e.pointerId);
-  if(canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-  lastPinchDistance = pointerDistance();
-  dragging = activePointers.size === 1;
-  if(!dragging) canvas.classList.remove('grabbing');
-}
-canvas.addEventListener('pointerup', stopPointer);
-canvas.addEventListener('pointercancel', stopPointer);
+/* ---- zoom (scroll wheel + two-finger pinch) on the 3D model ---- */
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+let modelScale = 1;
+const MODEL_SCALE_MIN = 0.4, MODEL_SCALE_MAX = 2.5;
+function applyModelScale(){ mainGroup.scale.set(modelScale, modelScale, modelScale); }
+function resetModelScale(){ modelScale = 1; applyModelScale(); }
+
 canvas.addEventListener('wheel', e=>{
-  if(currentDim==='3d' && currentShapeId){
-    e.preventDefault();
-    zoomCamera(e.deltaY*.008);
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  e.preventDefault();
+  modelScale = clamp(modelScale - e.deltaY*0.0015, MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+  applyModelScale();
+  hideGestureHint();
+}, {passive:false});
+
+let isPinching = false, pinchStartDist = 0, pinchStartScale = 1;
+canvas.addEventListener('touchstart', e=>{
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  if(e.touches.length===2){
+    isPinching = true;
+    pinchStartDist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    pinchStartScale = modelScale;
+    hideGestureHint();
   }
-},{passive:false});
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  if(isPinching && e.touches.length===2){
+    e.preventDefault();
+    const dist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    modelScale = clamp(pinchStartScale*(dist/pinchStartDist), MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+    applyModelScale();
+  }
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{ if(e.touches.length<2) isPinching = false; });
+
+/* ---- small floating hint shown once a 3D model is on screen ---- */
+const gestureHint = document.getElementById('gestureHint');
+let gestureHintTimer = null;
+function showGestureHint(){
+  if(!gestureHint) return;
+  gestureHint.classList.remove('hidden');
+  clearTimeout(gestureHintTimer);
+  gestureHintTimer = setTimeout(hideGestureHint, 4200);
+}
+function hideGestureHint(){
+  if(!gestureHint) return;
+  gestureHint.classList.add('hidden');
+}
 
 /* ---- drag to flip (2D shapes) ---- */
 let rotY2D = 0, dragging2D = false, lastX2D = 0;
@@ -996,6 +993,7 @@ const svgFlipEl = document.getElementById('svgFlip');
 svgStageEl.addEventListener('pointerdown', e=>{
   if(currentDim!=='2d' || !currentShapeId) return;
   dragging2D = true; lastX2D = e.clientX; svgFlipEl.classList.add('grabbing');
+  hideGestureHint();
 });
 window.addEventListener('pointerup', ()=>{ dragging2D=false; svgFlipEl.classList.remove('grabbing'); });
 window.addEventListener('pointermove', e=>{
@@ -1003,13 +1001,47 @@ window.addEventListener('pointermove', e=>{
   const dx = e.clientX-lastX2D;
   lastX2D = e.clientX;
   rotY2D += dx*.6;
-  svgFlipEl.style.transform = `rotateY(${rotY2D}deg)`;
+  apply2DScale();
 });
 
-/* ---- render loop ---- */
+/* ---- zoom (scroll wheel + pinch) on the 2D shape stage ---- */
+let shape2DScale = 1;
+function apply2DScale(){ svgFlipEl.style.setProperty('--extra-scale', shape2DScale); svgFlipEl.style.transform = `rotateY(${rotY2D}deg) scale(${shape2DScale})`; }
+svgStageEl.addEventListener('wheel', e=>{
+  if(currentDim!=='2d' || !currentShapeId) return;
+  e.preventDefault();
+  shape2DScale = clamp(shape2DScale - e.deltaY*0.0015, MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+  apply2DScale();
+  hideGestureHint();
+}, {passive:false});
+let isPinching2D = false, pinchStartDist2D = 0, pinchStartScale2D = 1;
+svgStageEl.addEventListener('touchstart', e=>{
+  if(currentDim!=='2d' || !currentShapeId) return;
+  if(e.touches.length===2){
+    isPinching2D = true;
+    pinchStartDist2D = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    pinchStartScale2D = shape2DScale;
+    hideGestureHint();
+  }
+}, {passive:false});
+svgStageEl.addEventListener('touchmove', e=>{
+  if(isPinching2D && e.touches.length===2){
+    e.preventDefault();
+    const dist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    shape2DScale = clamp(pinchStartScale2D*(dist/pinchStartDist2D), MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+    apply2DScale();
+  }
+}, {passive:false});
+svgStageEl.addEventListener('touchend', e=>{ if(e.touches.length<2) isPinching2D = false; });
+
+/* ---- render loop ----
+   Uses renderer.setAnimationLoop instead of a manual requestAnimationFrame
+   recursion: three.js swaps this to the WebXR frame source automatically
+   while an immersive-ar session is active, and behaves like a normal rAF
+   loop otherwise — so the same function drives both the regular viewer and
+   real AR. */
 const clock = new THREE.Clock();
 function animate(){
-  if(!renderer.xr.isPresenting) requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
 
   if(!currentShapeId){
@@ -1018,26 +1050,13 @@ function animate(){
       m.rotation.y += .004+m.userData.speedY*0.002;
       m.position.y += Math.sin(t*0.6+m.userData.phase)*0.0018;
     });
-  } else if(!dragging){
+  } else if(!dragging && !xrSession){
     mainGroup.rotation.y += 0.0032;
   }
-  if(renderer.xr.isPresenting){
-    const frame = renderer.xr.getFrame();
-    if(frame && arHitTestSource && arReferenceSpace){
-      const hits = frame.getHitTestResults(arHitTestSource);
-      if(hits.length){
-        const pose = hits[0].getPose(arReferenceSpace);
-        reticle.matrix.fromArray(pose.transform.matrix);
-        reticle.visible = !arPlaced;
-      } else {
-        reticle.visible = false;
-      }
-    }
-  }
   renderer.render(scene,camera);
-  positionLabels();
+  if(!xrSession) positionLabels();
 }
-animate();
+renderer.setAnimationLoop(animate);
 
 /* =====================================================================
    LOGIN / SPLASH SCREEN
@@ -1050,152 +1069,113 @@ document.getElementById('loginScreen').addEventListener('click', ()=>{
 });
 
 /* =====================================================================
-   CAMERA PREVIEW (pseudo-AR mode next to the real AR button)
+   AR MODE
+   - On devices/browsers that support WebXR immersive-ar (mainly Chrome on
+     Android), this opens a real AR session: the camera feed is rendered
+     natively by the browser and the selected model is placed in front of
+     the user in 3D space.
+   - Everywhere else (iOS Safari, in-app browsers, desktop — none of which
+     expose WebXR AR at all, a platform limitation no website can work
+     around) it falls back to a camera-preview mode: the device camera is
+     shown full-screen with the model rendered on top, still fully
+     rotate/zoom-able with touch.
+   In both cases the topbar and sidebar are hidden (see .ar-active CSS) so
+   nothing overlaps the camera view, leaving only a single "exit" button.
 ===================================================================== */
-let cameraOn = false, camStream = null;
-async function toggleCameraPreview(){
-  const btn = document.getElementById('cameraPreviewBtn');
-  const video = document.getElementById('camPreview');
-  if(!cameraOn){
-    try{
-      camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
-      video.srcObject = camStream;
-      video.classList.add('show');
-      cameraOn = true;
-      btn.classList.add('on');
-    }catch(err){
-      alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์');
-    }
-  } else {
-    if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
-    video.classList.remove('show');
-    video.srcObject = null;
-    cameraOn = false;
-    btn.classList.remove('on');
-  }
-}
-document.getElementById('cameraPreviewBtn').addEventListener('click', toggleCameraPreview);
+const appEl = document.querySelector('.app');
+const arBtn = document.getElementById('arBtn');
+const arExitFloatBtn = document.getElementById('arExitFloatBtn');
+const camPreviewVideo = document.getElementById('camPreview');
 
-/* Real WebXR AR mode with hit-test placement. */
-const arModeBtn = document.getElementById('arModeBtn');
-const arHint = document.getElementById('arHint');
-let arBusy = false;
-let fallbackAR = false;
+let xrSession = null;
+let camStream = null;
+let arFallbackActive = false;
 
-function showARMessage(message){
-  arHint.textContent = message;
-  arHint.classList.add('show');
-}
-function withTimeout(promise, ms){
-  return Promise.race([
-    promise,
-    new Promise((_, reject)=>setTimeout(()=>reject(new Error('AR request timed out')), ms))
-  ]);
+function setARActive(active){
+  appEl.classList.toggle('ar-active', active);
+  arExitFloatBtn.style.display = active ? 'flex' : 'none';
 }
 
-function resetARState(){
-  arSession = null;
-  arHitTestSource = null;
-  arReferenceSpace = null;
-  arPlaced = false;
-  reticle.visible = false;
-  arHint.classList.remove('show');
-  arModeBtn.classList.remove('on');
-  arModeBtn.setAttribute('aria-pressed','false');
-  arModeBtn.lastChild.textContent = ' เข้าสู่โหมด AR';
-  mainGroup.visible = true;
-  idleGroup.visible = !currentShapeId;
-  renderer.setAnimationLoop(null);
-  requestAnimationFrame(animate);
-  if(fallbackAR){
-    fallbackAR = false;
-    if(cameraOn) toggleCameraPreview();
-  }
+function placeModelForAR(){
+  mainGroup.position.set(0, -0.4, -1.6);
+  mainGroup.scale.set(.55,.55,.55);
 }
-
-async function enterFallbackAR(){
-  await toggleCameraPreview();
-  if(!cameraOn) return false;
-  fallbackAR = true;
-  mainGroup.visible = true;
-  idleGroup.visible = false;
-  arModeBtn.classList.add('on');
-  arModeBtn.setAttribute('aria-pressed','true');
-  arModeBtn.lastChild.textContent = ' ออกจาก AR';
-  showARMessage('โหมดกล้องทดแทน: หมุนหรือซูมโมเดลบนภาพกล้องได้ แต่ไม่มีการล็อกตำแหน่งบนพื้นจริง');
-  return true;
+function resetModelPlacement(){
+  mainGroup.position.set(0,0,0);
+  mainGroup.scale.set(1,1,1);
+  camera.position.set(0,0,BASE_CAMERA_Z);
 }
 
 async function enterAR(){
-  if(arBusy) return;
-  if(currentDim!=='3d' || !currentShapeId || currentShapeId==='custom' && !currentSolidGroup){
-    showARMessage('กรุณาเลือกรูปทรง 3 มิติก่อนเข้าสู่โหมด AR');
-    return;
+  if(currentDim!=='3d'){
+    document.querySelector('.dim-tab[data-dim="3d"]').click();
   }
-  if(!navigator.xr){
-    await enterFallbackAR();
-    return;
+  if(!currentShapeId){
+    selectShape('cube');
   }
-  arBusy = true;
-  arModeBtn.disabled = true;
-  showARMessage('กำลังเปิดกล้อง AR... กรุณารอสักครู่');
-  try{
-    renderer.xr.setReferenceSpaceType('local-floor');
-    const supported = await withTimeout(navigator.xr.isSessionSupported('immersive-ar'),8000);
-    if(!supported){
-      await enterFallbackAR();
-      return;
+
+  if(navigator.xr && navigator.xr.isSessionSupported){
+    let supported = false;
+    try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){ supported = false; }
+    if(supported){
+      try{
+        const session = await navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures:['local-floor'],
+          optionalFeatures:['dom-overlay'],
+          domOverlay:{root: document.body}
+        });
+        xrSession = session;
+        renderer.xr.enabled = true;
+        renderer.xr.setReferenceSpaceType('local-floor');
+        await renderer.xr.setSession(session);
+        session.addEventListener('end', onXRSessionEnd);
+        setARActive(true);
+        placeModelForAR();
+        return;
+      }catch(err){
+        console.error('เปิด WebXR AR ไม่สำเร็จ:', err);
+        xrSession = null;
+      }
     }
-    arSession = await withTimeout(navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','local-floor'],
-      domOverlay:{root:document.body}
-    }),12000);
-    arSession.addEventListener('end', resetARState);
-    arSession.addEventListener('select', ()=>{
-      if(!reticle.visible) return;
-      mainGroup.position.setFromMatrixPosition(reticle.matrix);
-      mainGroup.quaternion.setFromRotationMatrix(reticle.matrix);
-      mainGroup.visible = true;
-      arPlaced = true;
-      reticle.visible = false;
-      arHint.textContent = 'แตะพื้นจุดใหม่เพื่อย้ายโมเดล หรือกดปุ่ม AR เพื่อออก';
-    });
-    await renderer.xr.setSession(arSession);
-    arReferenceSpace = await arSession.requestReferenceSpace('local-floor').catch(()=>arSession.requestReferenceSpace('local'));
-    const viewerSpace = await arSession.requestReferenceSpace('viewer');
-    arHitTestSource = await arSession.requestHitTestSource({space:viewerSpace});
-    arPlaced = false;
-    mainGroup.visible = false;
-    idleGroup.visible = false;
-    arHint.textContent = 'เล็งกล้องไปที่พื้น แล้วแตะเพื่อวางโมเดล';
-    arHint.classList.add('show');
-    arModeBtn.classList.add('on');
-    arModeBtn.setAttribute('aria-pressed','true');
-    arModeBtn.lastChild.textContent = ' ออกจากโหมด AR';
-    renderer.setAnimationLoop(animate);
-  }catch(err){
-    if(arSession) await arSession.end().catch(()=>{});
-    resetARState();
-    await enterFallbackAR();
-  } finally {
-    arBusy = false;
-    arModeBtn.disabled = false;
   }
+  // ไม่รองรับ WebXR AR (เช่น iOS Safari หรือเบราว์เซอร์ในแอปแชท) — สลับไปโหมดกล้องแทน
+  startCameraFallback();
 }
 
-async function toggleARMode(){
-  if(fallbackAR){
-    resetARState();
-    return;
-  }
-  if(arSession){
-    await arSession.end();
-    return;
-  }
-  await enterAR();
+function onXRSessionEnd(){
+  xrSession = null;
+  renderer.xr.enabled = false;
+  resetModelPlacement();
+  setARActive(false);
 }
-arModeBtn.addEventListener('click', toggleARMode);
+
+async function startCameraFallback(){
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+    camPreviewVideo.srcObject = camStream;
+    camPreviewVideo.classList.add('show');
+    arFallbackActive = true;
+    setARActive(true);
+  }catch(err){
+    alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์\n\nหมายเหตุ: โหมด AR แบบเต็มรูปแบบ (WebXR) รองรับเฉพาะ Chrome บน Android เท่านั้น อุปกรณ์อื่น เช่น iPhone/iPad จะใช้ได้เฉพาะโหมดแสดงโมเดลซ้อนภาพกล้องนี้');
+  }
+}
+function stopCameraFallback(){
+  if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
+  camPreviewVideo.classList.remove('show');
+  camPreviewVideo.srcObject = null;
+  camStream = null;
+  arFallbackActive = false;
+  setARActive(false);
+}
+
+function exitAR(){
+  if(xrSession){ xrSession.end(); }
+  else if(arFallbackActive){ stopCameraFallback(); }
+}
+
+arBtn.addEventListener('click', enterAR);
+arExitFloatBtn.addEventListener('click', exitAR);
 
 /* =====================================================================
    LABEL LAYER (V/E/F chips projected from 3D anchor points)
@@ -1345,7 +1325,8 @@ function render2DShape(id){
   }
   svgFlipEl.innerHTML = `<svg viewBox="0 0 220 220">${inner}</svg>`;
   rotY2D = 0;
-  svgFlipEl.style.transform = 'rotateY(0deg)';
+  shape2DScale = 1;
+  apply2DScale();
 }
 
 /* =====================================================================
@@ -1353,7 +1334,6 @@ function render2DShape(id){
 ===================================================================== */
 function selectShape(id){
   currentShapeId = id;
-  closeMobileSidebar();
   renderSidebar();
   idleOverlay.classList.add('hidden');
   idleGroup.visible = false;
@@ -1373,12 +1353,14 @@ function selectShape(id){
     labelLayer.classList.remove('show');
     document.getElementById('toolLabelBtn').style.display='';
     document.getElementById('toolNetBtn').style.display='';
+    resetModelScale();
     if(customPresetId){
       rebuildCustomModel();
     } else {
       updateCustomToolbarState();
     }
     openPanel('build');
+    showGestureHint();
     return;
   }
   document.getElementById('toolBuildBtn').style.display='none';
@@ -1389,6 +1371,7 @@ function selectShape(id){
     mainGroup.clear();
     mainGroup.rotation.set(0,0,0);
     camera.position.z = BASE_CAMERA_Z;
+    resetModelScale();
     const def = SHAPES_3D[id];
     currentSolidGroup = buildSolidMesh(def);
     mainGroup.add(currentSolidGroup);
@@ -1399,6 +1382,7 @@ function selectShape(id){
     document.querySelector('.tool-btn[data-tool="net"]').disabled = false;
     document.querySelector('.tool-btn[data-tool="formula"]').disabled = false;
     document.querySelector('.tool-btn[data-tool="info"]').disabled = false;
+    showGestureHint();
   } else {
     canvas.style.display='none';
     svgStage.classList.remove('hidden');
@@ -1406,6 +1390,7 @@ function selectShape(id){
     labelLayer.classList.remove('show');
     document.getElementById('toolLabelBtn').style.display='none';
     document.getElementById('toolNetBtn').style.display='none';
+    showGestureHint();
   }
   if(activeTool) openPanel(activeTool);
 }
@@ -1666,20 +1651,12 @@ function netSVG(id){
 function checkMobile(){
   const isMobile = window.innerWidth<=760;
   document.getElementById('sidebarToggle').style.display = isMobile?'flex':'none';
-  if(!isMobile) closeMobileSidebar();
-}
-function closeMobileSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarBackdrop').classList.remove('show');
 }
 window.addEventListener('resize', checkMobile);
 checkMobile();
 document.getElementById('sidebarToggle').addEventListener('click', ()=>{
-  const sidebar = document.getElementById('sidebar');
-  const isOpen = sidebar.classList.toggle('open');
-  document.getElementById('sidebarBackdrop').classList.toggle('show', isOpen);
+  document.getElementById('sidebar').classList.toggle('open');
 });
-document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
 
 /* =====================================================================
    INIT
