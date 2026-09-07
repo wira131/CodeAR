@@ -732,6 +732,7 @@ let customAxis = { x:3, y:3, z:3 };
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000, 0); // transparent clear so camera passthrough / page background shows through instead of opaque black
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45,1,.1,100);
 camera.position.set(0,0,4.6);
