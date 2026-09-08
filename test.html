@@ -198,6 +198,40 @@
     box-shadow:0 6px 18px rgba(0,0,0,.1);
   }
 
+  /* ---------- ON-SCREEN AR / CAMERA STATUS MESSAGE ----------
+     Used instead of alert() for camera/AR failures — alert() can be silently
+     suppressed inside sandboxed preview iframes, which used to leave the
+     screen totally blank with no visible feedback at all. */
+  .ar-status{
+    position:absolute; inset:0; z-index:35;
+    display:none; align-items:center; justify-content:center;
+    padding:28px; text-align:center;
+    background:rgba(255,255,255,.97); backdrop-filter:blur(6px);
+  }
+  .ar-status.show{display:flex;}
+  .ar-status-card{
+    max-width:340px; display:flex; flex-direction:column; align-items:center; gap:14px;
+  }
+  .ar-status-icon{
+    width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--panel-active); color:var(--blue); flex-shrink:0;
+  }
+  .ar-status-icon.err{ background:#fef2f2; color:#ef4444; }
+  .ar-status h3{ margin:0; font-size:1rem; font-weight:600; color:var(--text); }
+  .ar-status p{ margin:0; font-size:.82rem; line-height:1.6; color:var(--text-dim); font-weight:300; }
+  .ar-status-btn{
+    margin-top:4px; padding:10px 22px; border:none; border-radius:20px; cursor:pointer;
+    background:var(--blue); color:#fff; font-size:.82rem; font-weight:500;
+  }
+  .ar-status-btn:hover{ background:#0f766e; }
+  .ar-status-spinner{
+    width:26px;height:26px;border-radius:50%;
+    border:3px solid var(--panel-border); border-top-color:var(--blue);
+    animation:arSpin .8s linear infinite;
+  }
+  @keyframes arSpin{ to{ transform:rotate(360deg); } }
+
   /* ---------- CAMERA PREVIEW ---------- */
   #camPreview{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;
@@ -379,8 +413,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="14" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
       </button>
       <button class="ar-btn" id="arBtn" title="โหมด AR จริง">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2L12 2z" fill="#fff"/></svg>
-        <span class="ar-label">โหมด AR</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"></svg>
+        <span class="ar-label">โหมดAR</span>
       </button>
     </div>
   </header>
@@ -403,7 +437,10 @@
     <main class="viewport">
       <video id="camPreview" autoplay playsinline muted></video>
       <canvas id="three-canvas"></canvas>
-      <button id="arExitFloatBtn" class="ar-exit-float" style="display:none;">✕ ออกจากโหมด AR</button>
+      <button id="arExitFloatBtn" class="ar-exit-float" style="display:none;">✕ ออก</button>
+      <div class="ar-status" id="arStatus">
+        <div class="ar-status-card" id="arStatusCard"></div>
+      </div>
       <div class="svg-stage hidden" id="svgStage"><div id="svgFlip"></div></div>
 
       <div class="idle-overlay" id="idleOverlay">
@@ -1058,14 +1095,45 @@ const arBtn = document.getElementById('arBtn');
 const cameraBtn = document.getElementById('cameraBtn');
 const arExitFloatBtn = document.getElementById('arExitFloatBtn');
 const camPreviewVideo = document.getElementById('camPreview');
+const arStatusEl = document.getElementById('arStatus');
+const arStatusCardEl = document.getElementById('arStatusCard');
 
 let xrSession = null;
 let camStream = null;
 let arFallbackActive = false;
+let camHealthTimer = null;
 
 function setARActive(active){
   appEl.classList.toggle('ar-active', active);
   arExitFloatBtn.style.display = active ? 'flex' : 'none';
+}
+
+/* ---- on-screen status overlay (replaces alert(), which can be silently
+   swallowed inside sandboxed/embedded preview iframes) ---- */
+const ICON_INFO = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="8" r="1" fill="currentColor"/></svg>`;
+const ICON_WARN = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>`;
+
+function showARStatus({icon='loading', title, message, showExit=true}){
+  let iconHtml;
+  if(icon==='loading') iconHtml = `<div class="ar-status-spinner"></div>`;
+  else if(icon==='error') iconHtml = `<div class="ar-status-icon err">${ICON_WARN}</div>`;
+  else iconHtml = `<div class="ar-status-icon">${ICON_INFO}</div>`;
+  arStatusCardEl.innerHTML = `
+    ${iconHtml}
+    <h3>${title}</h3>
+    <p>${message}</p>
+    ${showExit ? `<button class="ar-status-btn" id="arStatusExitBtn">ปิดหน้าต่างนี้</button>` : ''}`;
+  arStatusEl.classList.add('show');
+  if(showExit){
+    document.getElementById('arStatusExitBtn').addEventListener('click', ()=>{
+      hideARStatus();
+      exitAR();
+    });
+  }
+}
+function hideARStatus(){
+  arStatusEl.classList.remove('show');
+  arStatusCardEl.innerHTML = '';
 }
 
 function ensureAModelIsSelected(){
@@ -1085,16 +1153,22 @@ function resetModelPlacement(){
 
 async function enterRealAR(){
   if(!navigator.xr || !navigator.xr.isSessionSupported){
-    alert('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับ WebXR AR\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    showARStatus({icon:'info', title:'ไม่รองรับ WebXR AR',
+      message:'อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับ WebXR AR (รองรับเฉพาะ Chrome บน Android) กรุณาใช้ปุ่ม "โหมดกล้อง" แทน', showExit:true});
+    setARActive(true); // show the status overlay cleanly on top of the app
     return;
   }
   let supported = false;
   try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){ supported = false; }
   if(!supported){
-    alert('อุปกรณ์นี้ไม่รองรับ WebXR AR\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    showARStatus({icon:'info', title:'อุปกรณ์นี้ไม่รองรับ WebXR AR',
+      message:'กรุณาใช้ปุ่ม "โหมดกล้อง" แทน ซึ่งใช้ได้กับอุปกรณ์ที่มีกล้องทั่วไป', showExit:true});
+    setARActive(true);
     return;
   }
   ensureAModelIsSelected();
+  showARStatus({icon:'loading', title:'กำลังเปิดโหมด AR…', message:'กรุณาอนุญาตการใช้งานกล้องหากมีการร้องขอ', showExit:false});
+  setARActive(true);
   try{
     const session = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures:['local'],
@@ -1107,15 +1181,15 @@ async function enterRealAR(){
     catch(e){ renderer.xr.setReferenceSpaceType('local'); }
     await renderer.xr.setSession(session);
     session.addEventListener('end', onXRSessionEnd);
-    setARActive(true);
+    hideARStatus();
     placeModelForAR();
   }catch(err){
     if(xrSession){ try{ xrSession.end(); }catch(e){} }
     xrSession = null;
     renderer.xr.enabled = false;
     resetModelPlacement();
-    setARActive(false);
-    alert('ไม่สามารถเปิดโหมด AR จริงได้บนอุปกรณ์นี้');
+    showARStatus({icon:'error', title:'เปิดโหมด AR ไม่สำเร็จ',
+      message:'ไม่สามารถเปิดโหมด AR จริงได้บนอุปกรณ์นี้ กรุณาลองใช้ปุ่ม "โหมดกล้อง" แทน', showExit:true});
   }
 }
 
@@ -1127,29 +1201,82 @@ function onXRSessionEnd(){
 }
 
 async function enterCameraMode(){
+  // Secure-context / API-availability check first — getUserMedia is only
+  // exposed on HTTPS (or localhost). On plain HTTP, or inside some embedded
+  // preview iframes that block camera access, navigator.mediaDevices can be
+  // undefined entirely, which used to fail with nothing visible on screen.
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    ensureAModelIsSelected();
+    setARActive(true);
+    showARStatus({icon:'error', title:'ใช้กล้องไม่ได้ในหน้านี้',
+      message:'เบราว์เซอร์หรือหน้าต่างนี้ไม่อนุญาตให้เข้าถึงกล้อง (มักเกิดเมื่อเปิดผ่าน HTTP แทน HTTPS หรือถูกจำกัดสิทธิ์โดยหน้าต่างแสดงตัวอย่าง) ลองเปิดไฟล์นี้ในเบราว์เซอร์ปกติผ่าน HTTPS', showExit:true});
+    return;
+  }
+
   ensureAModelIsSelected();
+  setARActive(true);
+  showARStatus({icon:'loading', title:'กำลังเปิดกล้อง…', message:'กรุณาอนุญาตการใช้งานกล้องหากมีการร้องขอ', showExit:false});
+
   try{
     camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
     camPreviewVideo.srcObject = camStream;
     camPreviewVideo.classList.add('show');
     arFallbackActive = true;
-    setARActive(true);
+
+    // Wait for an actual video frame before declaring success — a stream
+    // object resolving is not the same as pixels actually arriving.
+    const gotFrame = await waitForVideoFrame(camPreviewVideo, 5000);
+    if(gotFrame){
+      hideARStatus();
+    } else {
+      showARStatus({icon:'error', title:'ไม่พบภาพจากกล้อง',
+        message:'เชื่อมต่อกล้องสำเร็จ แต่ไม่มีภาพส่งเข้ามา อาจเกิดจากสิทธิ์การใช้งานกล้องถูกจำกัดในหน้าต่างนี้ ลองเปิดในเบราว์เซอร์ของอุปกรณ์โดยตรงแทนหน้าต่างแสดงตัวอย่าง', showExit:true});
+    }
   }catch(err){
-    alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์');
+    let msg = 'ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์แล้วลองอีกครั้ง';
+    if(err && err.name === 'NotAllowedError') msg = 'การใช้งานกล้องถูกปฏิเสธ กรุณาอนุญาตสิทธิ์กล้องให้เว็บไซต์นี้ในตั้งค่าเบราว์เซอร์ แล้วลองใหม่';
+    else if(err && err.name === 'NotFoundError') msg = 'ไม่พบกล้องบนอุปกรณ์นี้';
+    showARStatus({icon:'error', title:'เปิดกล้องไม่สำเร็จ', message:msg, showExit:true});
   }
 }
+
+/* Resolves true once the <video> reports non-zero dimensions (a real frame
+   has arrived), or false if that hasn't happened within timeoutMs. */
+function waitForVideoFrame(video, timeoutMs){
+  return new Promise(resolve=>{
+    if(video.videoWidth > 0 && video.videoHeight > 0){ resolve(true); return; }
+    let done = false;
+    const onLoaded = ()=>{
+      if(done) return; done = true;
+      video.removeEventListener('loadeddata', onLoaded);
+      clearTimeout(timer);
+      resolve(true);
+    };
+    video.addEventListener('loadeddata', onLoaded);
+    const timer = setTimeout(()=>{
+      if(done) return; done = true;
+      video.removeEventListener('loadeddata', onLoaded);
+      resolve(false);
+    }, timeoutMs);
+  });
+}
+
 function exitCameraMode(){
+  if(camHealthTimer){ clearTimeout(camHealthTimer); camHealthTimer = null; }
   if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
   camPreviewVideo.classList.remove('show');
   camPreviewVideo.srcObject = null;
   camStream = null;
   arFallbackActive = false;
+  hideARStatus();
   setARActive(false);
 }
 
 function exitAR(){
+  hideARStatus();
   if(xrSession){ xrSession.end(); }
   else if(arFallbackActive){ exitCameraMode(); }
+  else { setARActive(false); }
 }
 
 arBtn.addEventListener('click', enterRealAR);
@@ -1272,7 +1399,7 @@ function renderSidebar(){
     buildCard.innerHTML = `
       <div class="shape-swatch">${customBuilderSwatchSVG()}</div>
       <div class="shape-meta">
-        <div class="th">สร้างโมเดลเรขาคณิต 3 มิติ</div>
+        <div class="th">สร้างโมเดลเรขาคณิต</div>
         <div class="en">Create Custom Model</div>
       </div>`;
     buildCard.addEventListener('click', ()=>selectShape('custom'));

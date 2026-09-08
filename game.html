@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>GeoStarAR</title>
+    <!-- โหลดไลบรารี MediaPipe สำหรับการตรวจจับมือ -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            font-family: 'Kanit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+        }
+        /* วิดีโอพื้นหลัง AR */
+        #webcam {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 1; transform: scaleX(-1); /* กลับซ้ายขวาให้เหมือนกระจก */
+        }
+        /* แคนวาสสำหรับแสดงกราฟิกเกม */
+        #gameCanvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
+        }
+        
+        /* หน้าต่าง UI */
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 3; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.75); color: white; transition: 0.3s;
+        }
+        .hidden { display: none !important; }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.1); padding: 30px;
+            border-radius: 15px; border: 2px solid rgba(255,255,255,0.3);
+            text-align: center; max-width: 600px; backdrop-filter: blur(5px);
+        }
+        h1 { color: #4CAF50; text-shadow: 2px 2px 4px #000; margin-top: 0; }
+        p { font-size: 16px; line-height: 1.5; text-align: left; }
+        button {
+            padding: 12px 25px; margin: 10px; font-size: 18px; border: none;
+            border-radius: 8px; cursor: pointer; background: #2196F3; color: white;
+            font-weight: bold; transition: 0.2s;
+        }
+        button:hover { background: #1976D2; transform: scale(1.05); }
+        button:disabled { background: #555; color: #888; cursor: not-allowed; transform: none; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-success { background: #4CAF50; }
+        .btn-success:hover { background: #388E3C; }
+
+        /* HUD ระหว่างเล่นเกม */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
+            box-sizing: border-box; z-index: 3; display: flex; justify-content: space-between;
+            pointer-events: none;
+        }
+        .hud-box {
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px;
+            color: white; font-size: 20px; font-weight: bold; pointer-events: auto;
+        }
+        #pauseBtn { padding: 5px 15px; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <!-- พื้นหลัง AR -->
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 1. หน้าจอหลัก (Main Menu) -->
+    <div id="mainMenu" class="ui-layer">
+        <div class="panel">
+            <h1>GeoStarAR</h1>
+            <div style="height: 250px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; border: 1px solid #555; padding: 10px; border-radius: 5px;">
+                <p><b>กติกาและวิธีการเล่น:</b></p>
+                <p>1. เกมจะมีรูปทรงเรขาคณิตตกลงมา ให้คุณใช้ <b>มือ</b> (หรือเมาส์/สัมผัส) ลากรูปทรงไปใส่ช่องด้านล่างให้ถูกต้อง</p>
+                <p>2. คะแนน: ลูกบาศก์(20), ปริซึมหกเหลี่ยม(40), พีระมิด(40), ทรงกระบอก(40), ทรงกรวย(45), ทรงกลม(45)</p>
+                <p>3. ใส่ผิดช่อง หรือ ปล่อยตกขอบ = <b>หัก 2 พลังชีวิต</b> ต่อ 1 ชิ้น</p>
+                <p>4. <b>ระเบิด:</b> จะปรากฏแบบสุ่ม มีเวลา 5 วินาที ให้แตะหรือคลิกเพื่อทำลาย หากหมดเวลา = <b>หัก 10 คะแนน</b></p>
+                <p>5. เกมจะจบลงเมื่อพลังชีวิตเหลือ 0</p>
+            </div>
+            <h3>เลือกระดับความยาก:</h3>
+            <button onclick="startGameSetup('EASY')">ระดับง่าย</button>
+            <button onclick="startGameSetup('NORMAL')">ระดับปกติ</button>
+            <button onclick="startGameSetup('HARD')" class="btn-danger">ระดับยาก</button>
+        </div>
+    </div>
+
+    <!-- 2. หน้าจอตรวจจับมือ (Calibration) -->
+    <div id="calibrationMenu" class="ui-layer hidden">
+        <div class="panel">
+            <h1>เตรียมความพร้อม AR</h1>
+            <p style="text-align: center;">ระบบกำลังเปิดกล้องและค้นหามือของคุณ...</p>
+            <p style="text-align: center; color: yellow;">โปรดนำมือเข้าสู่บริเวณที่กล้องมองเห็นอย่างชัดเจน</p>
+            <h2 id="handStatus" style="color: red;">สถานะ: กำลังค้นหามือ...</h2>
+            <button id="startBtn" class="btn-success" disabled onclick="enterGame()">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <!-- HUD ระหว่างเล่นเกม -->
+    <div id="hud" class="hidden">
+        <div class="hud-box">❤️ พลังชีวิต: <span id="hpDisplay">100</span></div>
+        <div class="hud-box">⭐ คะแนน: <span id="scoreDisplay">0</span></div>
+        <button id="pauseBtn" onclick="pauseGame()">หยุดเล่น</button>
+    </div>
+
+    <!-- 3. หน้าจอหยุดเกม (Pause Menu) -->
+    <div id="pauseMenu" class="ui-layer hidden">
+        <div class="panel">
+            <h1>หยุดเล่นชั่วคราว</h1>
+            <button onclick="resumeGame()" class="btn-success">เล่นต่อ</button>
+            <button onclick="endGame()" class="btn-danger">ออกจากเกม</button>
+        </div>
+    </div>
+
+    <!-- 4. หน้าจอจบเกม (Game Over) -->
+    <div id="gameOverMenu" class="ui-layer hidden">
+        <div class="panel">
+            <h1>จบเกม! (Game Over)</h1>
+            <h2>คะแนนรวมที่คุณทำได้: <span id="finalScore" style="color:#4CAF50;">0</span></h2>
+            <button onclick="location.reload()" class="btn-success">กลับสู่หน้าหลัก</button>
+        </div>
+    </div>
+
+    <script>
+        // -- ตัวแปรระบบเกม --
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const videoElement = document.getElementById('webcam');
+        
+        let gameState = 'MENU'; // MENU, CALIBRATE, PLAYING, PAUSED, GAMEOVER
+        let difficulty = 'EASY';
+        let hp = 100;
+        let score = 0;
+        let baseSpeed = 1; 
+        let bombFreq = 0.1;
+        let objectFreq = 60; // จำนวนเฟรมต่อการปล่อยของ
+        let frameCount = 0;
+        
+        // Input Tracking
+        let cursorX = 0, cursorY = 0;
+        let isGrabbing = false;
+        let handDetected = false;
+        
+        // Entities
+        let fallingObjects = [];
+        const SHAPES = [
+            { id: 0, name: 'ลูกบาศก์', points: 20, color: '#3498db' },
+            { id: 1, name: 'ปริซึมหกเหลี่ยม', points: 40, color: '#2ecc71' },
+            { id: 2, name: 'พีระมิด', points: 40, color: '#f1c40f' },
+            { id: 3, name: 'ทรงกระบอก', points: 40, color: '#e67e22' },
+            { id: 4, name: 'ทรงกรวย', points: 45, color: '#9b59b6' },
+            { id: 5, name: 'ทรงกลม', points: 45, color: '#e74c3c' }
+        ];
+        let targetSlots = [];
+
+        // Resize Canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // คำนวณช่องรับรูปทรงด้านล่าง
+            targetSlots = [];
+            let slotWidth = canvas.width / 6;
+            for(let i=0; i<6; i++) {
+                targetSlots.push({
+                    x: i * slotWidth,
+                    y: canvas.height - 120,
+                    width: slotWidth,
+                    height: 120,
+                    shapeId: i,
+                    name: SHAPES[i].name,
+                    color: SHAPES[i].color
+                });
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // -- MediaPipe Hands Setup --
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        hands.setOptions({
+            maxNumHands: 1, modelComplexity: 1,
+            minDetectionConfidence: 0.6, minTrackingConfidence: 0.6
+        });
+        
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                if(!handDetected) {
+                    handDetected = true;
+                    document.getElementById('handStatus').innerText = "สถานะ: ตรวจพบมือแล้ว";
+                    document.getElementById('handStatus').style.color = "#4CAF50";
+                    document.getElementById('startBtn').disabled = false;
+                }
+                
+                const landmarks = results.multiHandLandmarks[0];
+                // ใช้นิ้วชี้ (Landmark 8) เป็นตำแหน่งเคอร์เซอร์หลัก
+                // วิดีโอกลับซ้ายขวา ต้องกลับค่า X 
+                cursorX = (1 - landmarks[8].x) * canvas.width;
+                cursorY = landmarks[8].y * canvas.height;
+                
+                // ตรวจจับการจับ (หยิบ) โดยวัดระยะห่างระหว่างนิ้วชี้ (8) กับนิ้วโป้ง (4)
+                let dx = landmarks[8].x - landmarks[4].x;
+                let dy = landmarks[8].y - landmarks[4].y;
+                let dist = Math.hypot(dx, dy);
+                isGrabbing = dist < 0.05; // ถ้านิ้วชิดกันมาก = หยิบ
+            } else {
+                isGrabbing = false; // ปล่อยมือถ้าไม่เจอ
+            }
+        });
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                if (gameState === 'CALIBRATE' || gameState === 'PLAYING') {
+                    await hands.send({image: videoElement});
+                }
+            },
+            width: 640, height: 480
+        });
+
+        // -- ระบบเมาส์ / สัมผัส (Fallback) --
+        function updateMousePos(e) {
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            cursorX = clientX; cursorY = clientY;
+        }
+        window.addEventListener('mousedown', (e) => { updateMousePos(e); isGrabbing = true; checkBombClick(); });
+        window.addEventListener('mousemove', (e) => { if(isGrabbing) updateMousePos(e); });
+        window.addEventListener('mouseup', () => { isGrabbing = false; });
+        window.addEventListener('touchstart', (e) => { updateMousePos(e); isGrabbing = true; checkBombClick(); });
+        window.addEventListener('touchmove', (e) => { if(isGrabbing) updateMousePos(e); });
+        window.addEventListener('touchend', () => { isGrabbing = false; });
+
+        // -- ฟังก์ชันระบบเกม --
+        function startGameSetup(level) {
+            difficulty = level;
+            // ตั้งค่าความเร็ว (คำนวณจำลองจาก 0.62, 1.12, 1.56 เมตร/วินาที ตามหน้าจอ)
+            let screenScale = canvas.height * 0.0015; 
+            if(level === 'EASY') { baseSpeed = 1 * screenScale; bombFreq = 0.05; objectFreq = 80; }
+            else if(level === 'NORMAL') { baseSpeed = 1.8 * screenScale; bombFreq = 0.15; objectFreq = 60; }
+            else if(level === 'HARD') { baseSpeed = 2.5 * screenScale; bombFreq = 0.3; objectFreq = 40; }
+
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('calibrationMenu').classList.remove('hidden');
+            gameState = 'CALIBRATE';
+            
+            // เปิดกล้อง
+            camera.start().catch(err => {
+                alert("ไม่สามารถเข้าถึงกล้องได้! คุณสามารถใช้เมาส์หรือการสัมผัสหน้าจอเพื่อเล่นแทน");
+                handDetected = true; // บังคับให้เริ่มเกมได้ถ้ากล้องใช้งานไม่ได้
+                document.getElementById('startBtn').disabled = false;
+            });
+        }
+
+        function enterGame() {
+            document.getElementById('calibrationMenu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            gameState = 'PLAYING';
+            hp = 100; score = 0; fallingObjects = []; frameCount = 0;
+            updateHUD();
+            gameLoop();
+        }
+
+        function pauseGame() {
+            gameState = 'PAUSED';
+            document.getElementById('pauseMenu').classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            gameState = 'PLAYING';
+            document.getElementById('pauseMenu').classList.add('hidden');
+            gameLoop();
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.remove('hidden');
+            document.getElementById('finalScore').innerText = score;
+        }
+
+        function updateHUD() {
+            document.getElementById('hpDisplay').innerText = hp;
+            document.getElementById('scoreDisplay').innerText = score;
+            if(hp <= 0) endGame();
+        }
+
+        // -- ระบบวัตถุ --
+        function spawnObject() {
+            let isBomb = Math.random() < bombFreq;
+            let radius = 35;
+            let obj = {
+                id: Math.random().toString(36),
+                isBomb: isBomb,
+                x: Math.random() * (canvas.width - radius*2) + radius,
+                y: -radius,
+                radius: radius,
+                isGrabbed: false,
+                spawnTime: Date.now()
+            };
+            if(!isBomb) {
+                let shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                obj.shapeId = shape.id;
+                obj.name = shape.name;
+                obj.color = shape.color;
+                obj.points = shape.points;
+            }
+            fallingObjects.push(obj);
+        }
+
+        function checkBombClick() {
+            if(gameState !== 'PLAYING') return;
+            for(let i = fallingObjects.length - 1; i >= 0; i--) {
+                let obj = fallingObjects[i];
+                if(obj.isBomb) {
+                    let dist = Math.hypot(cursorX - obj.x, cursorY - obj.y);
+                    if(dist < obj.radius * 2) {
+                        fallingObjects.splice(i, 1); // กำจัดระเบิด
+                        break;
+                    }
+                }
+            }
+        }
+
+        // -- Game Loop พื้นฐาน --
+        function gameLoop() {
+            if (gameState !== 'PLAYING') return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frameCount++;
+            if(frameCount % objectFreq === 0) spawnObject();
+
+            // 1. วาดช่องรับรูปทรง
+            targetSlots.forEach(slot => {
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(slot.x, slot.y, slot.width, slot.height);
+                ctx.strokeStyle = slot.color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(slot.x, slot.y, slot.width, slot.height);
+                ctx.fillStyle = "white";
+                ctx.font = "16px Kanit";
+                ctx.textAlign = "center";
+                ctx.fillText(slot.name, slot.x + slot.width/2, slot.y + 60);
+            });
+
+            // 2. อัปเดตและวาดวัตถุที่ตกลงมา
+            let activeGrabbedObj = null;
+
+            for(let i = fallingObjects.length - 1; i >= 0; i--) {
+                let obj = fallingObjects[i];
+
+                if(obj.isGrabbed) {
+                    obj.x = cursorX; obj.y = cursorY;
+                    activeGrabbedObj = obj;
+                    
+                    // ปล่อยมือ (Drop)
+                    if(!isGrabbing) {
+                        obj.isGrabbed = false;
+                        // ตรวจสอบว่าลงช่องไหน
+                        let inSlot = targetSlots.find(s => obj.x > s.x && obj.x < s.x + s.width && obj.y > s.y);
+                        if(inSlot) {
+                            if(!obj.isBomb && obj.shapeId === inSlot.shapeId) {
+                                score += obj.points; // ถูกช่อง
+                            } else {
+                                hp -= 2; // ผิดช่อง หรือเอาระเบิดมาใส่
+                            }
+                            updateHUD();
+                            fallingObjects.splice(i, 1);
+                            continue;
+                        }
+                    }
+                } else {
+                    // จับ (Grab) วัตถุรูปร่าง (ไม่ให้ลากระเบิด)
+                    if(!obj.isBomb && isGrabbing && !activeGrabbedObj) {
+                        let dist = Math.hypot(cursorX - obj.x, cursorY - obj.y);
+                        if(dist < obj.radius * 2) {
+                            obj.isGrabbed = true;
+                            activeGrabbedObj = obj;
+                        }
+                    }
+                    obj.y += baseSpeed;
+                }
+
+                // กติกาการตกจอและการนับถอยหลังระเบิด
+                if(obj.isBomb) {
+                    let timeLeft = 5 - (Date.now() - obj.spawnTime) / 1000;
+                    if(timeLeft <= 0) {
+                        score -= 10; // ระเบิดทำงาน
+                        updateHUD();
+                        fallingObjects.splice(i, 1);
+                        continue;
+                    }
+                    // วาดระเบิด
+                    ctx.beginPath(); ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI*2);
+                    ctx.fillStyle = '#333'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='red'; ctx.stroke();
+                    ctx.fillStyle = 'white'; ctx.font = '20px Arial'; ctx.textAlign='center';
+                    ctx.fillText(Math.ceil(timeLeft)+"s", obj.x, obj.y+7);
+                    ctx.fillText("💣", obj.x, obj.y - 15);
+                } else {
+                    if(obj.y > canvas.height) {
+                        hp -= 2; // ปล่อยรูปทรงตก
+                        updateHUD();
+                        fallingObjects.splice(i, 1);
+                        continue;
+                    }
+                    // วาดรูปทรง
+                    ctx.beginPath();
+                    ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI*2);
+                    ctx.fillStyle = obj.color; ctx.fill();
+                    ctx.strokeStyle = "white"; ctx.lineWidth=2; ctx.stroke();
+                    ctx.fillStyle = 'white'; ctx.font = '14px Kanit'; ctx.textAlign='center';
+                    ctx.fillText(obj.name, obj.x, obj.y+5);
+                }
+            }
+
+            // 3. วาดสัญลักษณ์มือ/ตำแหน่งตรวจจับบนหน้าจอ
+            ctx.beginPath();
+            ctx.arc(cursorX, cursorY, 15, 0, Math.PI * 2);
+            ctx.fillStyle = isGrabbing ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
