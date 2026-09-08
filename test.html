@@ -2,25 +2,27 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Geometry Learning with WEB AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   :root{
-    --bg-0:#070b14;
-    --bg-1:#0d1526;
-    --panel:#0f1728;
-    --panel-border:rgba(148,163,184,.14);
-    --panel-hover:rgba(96,165,250,.09);
-    --panel-active:rgba(59,130,246,.16);
-    --text:#e8ecf6;
-    --text-dim:#8b96ab;
-    --blue:#3b82f6;
-    --blue-light:#7fb2ff;
-    --amber:#f6b93b;
-    --purple:#a78bfa;
-    --pink:#f472b6;
+    /* Light Theme Colors based on Image 6 */
+    --bg-0:#f1f5f9;
+    --bg-1:#ffffff;
+    --panel:#ffffff;
+    --panel-border:#e2e8f0;
+    --panel-hover:#f8fafc;
+    --panel-active:#e6f7f5;
+    --active-border:#0d9488;
+    --text:#1e293b;
+    --text-dim:#64748b;
+    --blue:#0d9488; /* Teal color from Image 6 */
+    --blue-light:#14b8a6;
+    --amber:#f59e0b;
+    --purple:#8b5cf6;
+    --pink:#ec4899;
     --radius-lg:18px;
     --radius-md:12px;
   }
@@ -28,7 +30,7 @@
   html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:'Prompt',sans-serif;background:var(--bg-0);color:var(--text);}
   button{font-family:inherit;}
 
-  .app{display:flex;flex-direction:column;width:100vw;height:100vh;}
+  .app{display:flex;flex-direction:column;width:100vw;height:100vh;height:100dvh;}
 
   /* ---------- LOGIN / SPLASH SCREEN ---------- */
   .app.login-active .topbar,
@@ -37,40 +39,40 @@
   #loginScreen{
     position:absolute;inset:0;z-index:90;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:20px;text-align:center;cursor:pointer;
+    gap:40px;
+    padding:20px;padding-bottom:calc(28px + env(safe-area-inset-bottom));
+    text-align:center;cursor:pointer;
     transition:opacity .45s ease;
+    background:var(--bg-1);
   }
   #loginScreen.fade-out{opacity:0;pointer-events:none;}
   .login-title-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
   #loginScreen h1{
     font-size:2.6rem;font-weight:700;line-height:1.4;margin:0;max-width:760px;
-    background:linear-gradient(135deg,#ffffff 0%,#60a5fa 50%,#93c5fd 100%);
+    background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    text-shadow:0 4px 20px rgba(59,130,246,.2);
   }
   #loginScreen .login-sub{font-size:.85rem;color:var(--text-dim);font-weight:300;}
   .login-enter-btn{
-    position:absolute;left:50%;bottom:64px;transform:translateX(-50%);
-    display:inline-flex;align-items:center;gap:10px;
-    font-size:1.05rem;color:#93c5fd;font-weight:400;
-    padding:13px 30px;background:rgba(59,130,246,.12);
-    border:1px solid rgba(96,165,250,.32);border-radius:30px;
+    display:inline-flex;align-items:center;gap:10px;flex-shrink:0;
+    font-size:1.05rem;color:#ffffff;font-weight:400;
+    padding:13px 30px;background:var(--blue);
+    border:none;border-radius:30px;
     backdrop-filter:blur(8px);cursor:pointer;
-    animation:pulseGlow 2s infinite ease-in-out;
+    box-shadow:0 4px 14px rgba(13,148,136,.3);
   }
-  .login-enter-btn:hover{background:rgba(59,130,246,.2);}
-  /* hide the idle "choose a model" hint while the login splash is showing */
+  .login-enter-btn:hover{background:#0f766e;}
   .app.login-active .idle-overlay{display:none;}
   @media (max-width:760px){
     #loginScreen h1{font-size:1.8rem;}
-    .login-enter-btn{bottom:36px;}
+    #loginScreen{gap:28px;}
   }
 
   /* ---------- TOP BAR ---------- */
   .topbar{
     display:flex;align-items:center;justify-content:space-between;
     padding:14px 22px;
-    background:linear-gradient(180deg, rgba(13,21,38,.95), rgba(13,21,38,.75));
+    background:rgba(255,255,255,.95);
     border-bottom:1px solid var(--panel-border);
     z-index:20;
     flex-shrink:0;
@@ -78,33 +80,32 @@
   .brand{display:flex;align-items:center;gap:10px;}
   .brand-mark{
     width:30px;height:30px;border-radius:9px;flex-shrink:0;
-    background:conic-gradient(from 220deg, var(--blue), var(--purple), var(--pink), var(--blue));
-    box-shadow:0 0 16px rgba(59,130,246,.45);
+    background:conic-gradient(from 220deg, var(--blue), #2dd4bf, var(--blue-light), var(--blue));
   }
-  .brand h1{font-size:1.02rem;font-weight:600;margin:0;letter-spacing:.2px;}
+  .brand h1{font-size:1.02rem;font-weight:600;margin:0;letter-spacing:.2px; color:var(--text);}
   .brand span{display:block;font-size:.72rem;color:var(--text-dim);font-weight:300;}
 
   .topbar-actions{display:flex;align-items:center;gap:10px;}
   .icon-btn{
     width:38px;height:38px;border-radius:50%;border:1px solid var(--panel-border);
-    background:rgba(255,255,255,.03);color:var(--text-dim);
+    background:var(--panel-hover);color:var(--text-dim);
     display:flex;align-items:center;justify-content:center;cursor:pointer;
     transition:background .15s, color .15s;
   }
-  .icon-btn:hover{background:rgba(255,255,255,.08);color:var(--text);}
+  .icon-btn:hover{background:var(--panel-border);color:var(--text);}
   .icon-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
   .ar-btn{
     display:flex;align-items:center;gap:8px;
     padding:9px 18px;border:none;border-radius:22px;cursor:pointer;
-    background:linear-gradient(135deg,var(--pink),var(--purple));
+    background:var(--blue);
     color:#fff;font-weight:600;font-size:.88rem;
-    box-shadow:0 6px 18px rgba(236,72,153,.28);
+    box-shadow:0 4px 12px rgba(13,148,136,.25);
     transition:transform .15s;
   }
-  .ar-btn:hover{transform:translateY(-1px);}
+  .ar-btn:hover{transform:translateY(-1px); background:#0f766e;}
 
   /* ---------- BODY LAYOUT ---------- */
-  .body{flex:1;display:flex;min-height:0;}
+  .body{flex:1;display:flex;min-height:0;position:relative;}
 
   /* ---------- SIDEBAR ---------- */
   .sidebar{
@@ -115,16 +116,29 @@
     padding:16px 14px;
     overflow:hidden;
   }
+  .sidebar-header{display:none;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .sidebar-header span{font-size:.86rem;font-weight:500;}
+  .sidebar-close{
+    width:30px;height:30px;border-radius:50%;border:none;
+    background:var(--panel-border);color:var(--text);cursor:pointer;font-size:1rem;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sidebar-backdrop{
+    position:absolute;inset:0;z-index:24;background:rgba(0,0,0,.3);
+    display:none;
+  }
+  .sidebar-backdrop.show{display:block;}
   .dim-tabs{
-    display:flex;background:rgba(255,255,255,.04);
+    display:flex;background:var(--bg-0);
     border-radius:12px;padding:4px;gap:4px;margin-bottom:16px;flex-shrink:0;
+    border: 1px solid var(--panel-border);
   }
   .dim-tab{
     flex:1;border:none;background:transparent;color:var(--text-dim);
     font-size:.8rem;font-weight:500;padding:9px 6px;border-radius:9px;cursor:pointer;
     transition:background .18s, color .18s;
   }
-  .dim-tab.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,.35);}
+  .dim-tab.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(13,148,136,.2);}
 
   .sidebar-label{
     font-size:.72rem;color:var(--text-dim);font-weight:400;
@@ -133,39 +147,58 @@
 
   .shape-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px;}
   .shape-list::-webkit-scrollbar{width:5px;}
-  .shape-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px;}
+  .shape-list::-webkit-scrollbar-thumb{background:var(--panel-border);border-radius:4px;}
 
   .shape-card{
     display:flex;align-items:center;gap:12px;
     padding:10px 11px;border-radius:var(--radius-md);
-    border:1px solid transparent;background:rgba(255,255,255,.02);
+    border:1px solid transparent;background:transparent;
     cursor:pointer;text-align:left;
     transition:background .15s, border-color .15s, transform .1s;
   }
   .shape-card:hover{background:var(--panel-hover);}
-  .shape-card.active{background:var(--panel-active);border-color:rgba(96,165,250,.4);}
+  .shape-card.active{background:var(--panel-active); border: 1px solid var(--active-border);}
   .shape-swatch{
     width:36px;height:36px;border-radius:9px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(255,255,255,.05);
+    background:var(--bg-0);
   }
+  .shape-card.active .shape-swatch { background: rgba(13, 148, 136, 0.15); }
   .shape-swatch svg{width:22px;height:22px;}
   .shape-meta{min-width:0;}
   .shape-meta .th{font-size:.86rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .shape-card.active .shape-meta .th { color: var(--blue); }
   .shape-meta .en{font-size:.68rem;color:var(--text-dim);font-weight:300;}
 
-  /* custom-model builder entry card (sits after the last preset shape) */
+  /* custom-model builder entry card */
   .shape-card.custom-card{
     margin-top:6px;padding-top:14px;border-top:1px dashed var(--panel-border);
+    border-left:none; border-right:none; border-bottom:none; border-radius:0;
   }
-  .shape-card.custom-card .shape-swatch{background:rgba(59,130,246,.14);}
+  .shape-card.custom-card.active{
+     border-top:1px dashed var(--blue); border-radius:var(--radius-md); border:1px solid var(--active-border);
+  }
 
   /* ---------- MAIN VIEWPORT ---------- */
-  .viewport{flex:1;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 42%, var(--bg-1) 0%, var(--bg-0) 78%);}
+  .viewport{flex:1;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 42%, #ffffff 0%, #f1f5f9 78%);}
   #three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;}
   #three-canvas.grabbing{cursor:grabbing;}
 
-  /* ---------- CAMERA PREVIEW (pseudo-AR) ---------- */
+  /* ---------- AR / CAMERA-FALLBACK MODE ---------- */
+  .app.ar-active .topbar,
+  .app.ar-active .sidebar,
+  .app.ar-active .side-panel,
+  .app.ar-active .idle-overlay{display:none;}
+  .ar-exit-float{
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; z-index:40;
+    display:none; align-items:center; gap:6px;
+    background:rgba(255,255,255,.9); backdrop-filter:blur(8px);
+    border:1px solid var(--panel-border); color:var(--text);
+    padding:10px 18px; border-radius:22px; font-size:.82rem; font-weight:500; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.1);
+  }
+
+  /* ---------- CAMERA PREVIEW ---------- */
   #camPreview{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;
   }
@@ -173,8 +206,8 @@
 
   .svg-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1100px;}
   .svg-stage.hidden{display:none;}
-  .svg-stage svg{width:min(46vw,380px);height:min(46vw,380px);filter:drop-shadow(0 14px 26px rgba(59,130,246,.25));}
-  #svgFlip{display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;will-change:transform;cursor:grab;}
+  .svg-stage svg{width:min(46vw,380px);height:min(46vw,380px);filter:drop-shadow(0 14px 26px rgba(13,148,136,.15));}
+  #svgFlip{display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;will-change:transform;cursor:grab;touch-action:none;}
   #svgFlip.grabbing{cursor:grabbing;}
 
   .idle-overlay{
@@ -186,14 +219,19 @@
   .idle-hint{
     display:inline-flex;align-items:center;gap:10px;
     padding:11px 24px;border-radius:30px;
-    background:rgba(59,130,246,.1);border:1px solid rgba(96,165,250,.28);
-    color:var(--blue-light);font-size:.92rem;backdrop-filter:blur(6px);
-    animation:pulseGlow 2.4s infinite ease-in-out;
+    background:var(--panel-active);border:1px solid var(--blue-light);
+    color:var(--blue);font-size:.92rem;backdrop-filter:blur(6px);
   }
-  @keyframes pulseGlow{
-    0%,100%{box-shadow:0 0 14px rgba(59,130,246,.18);}
-    50%{box-shadow:0 0 24px rgba(59,130,246,.42);}
+
+  .gesture-hint{
+    position:absolute; top:calc(16px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+    z-index:16; background:rgba(255,255,255,.9); backdrop-filter:blur(6px);
+    color:var(--text); padding:8px 16px; border-radius:20px; font-size:.72rem; font-weight:400;
+    border:1px solid var(--panel-border); white-space:nowrap; pointer-events:none;
+    transition:opacity .3s ease; opacity:1; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   }
+  .gesture-hint.hidden{opacity:0;}
+  @media (max-width:760px){ .gesture-hint{font-size:.66rem; padding:7px 12px; white-space:normal; text-align:center; max-width:82vw;} }
 
   /* floating V/E/F chips */
   .label-layer{position:absolute;inset:0;pointer-events:none;display:none;}
@@ -201,12 +239,12 @@
   .chip{
     position:absolute;text-align:center;font-size:.92rem;font-weight:500;
     line-height:1.35;transform:translate(-50%,-50%);
-    text-shadow:0 2px 10px rgba(0,0,0,.5);
+    text-shadow:0 2px 4px rgba(255,255,255,.8); color:var(--text);
   }
-  .chip small{display:block;font-size:.66rem;font-weight:300;opacity:.75;letter-spacing:.3px;}
-  .chip.edge{color:#dfe8fb;}
+  .chip small{display:block;font-size:.66rem;font-weight:400;opacity:.75;letter-spacing:.3px;}
+  .chip.edge{color:#3b82f6;}
   .chip.vertex{color:var(--amber);}
-  .chip.face{color:#f4f7ff;}
+  .chip.face{color:var(--blue);}
 
   /* ---------- TOOLBAR ---------- */
   .toolbar{
@@ -219,88 +257,103 @@
   .tool-btn{
     display:flex;align-items:center;gap:8px;
     padding:11px 18px;border-radius:24px;border:1px solid var(--panel-border);
-    background:rgba(15,23,40,.82);backdrop-filter:blur(8px);
+    background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
     color:var(--text);font-size:.84rem;cursor:pointer;
     transition:background .15s,border-color .15s,transform .1s;
+    box-shadow:0 4px 12px rgba(0,0,0,.05);
   }
   .tool-btn svg{width:16px;height:16px;flex-shrink:0;}
-  .tool-btn:hover{transform:translateY(-1px);}
+  .tool-btn:hover{transform:translateY(-1px); background:#fff;}
   .tool-btn.on{background:var(--blue);border-color:var(--blue);color:#fff;}
   .tool-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
 
-  /* ---------- SIDE PANEL (info / formula / net / build) ---------- */
+  /* ---------- SIDE PANEL ---------- */
   .side-panel{
     position:absolute;top:0;right:0;height:100%;width:320px;max-width:82vw;
-    background:rgba(10,15,28,.94);backdrop-filter:blur(10px);
+    background:rgba(255,255,255,.96);backdrop-filter:blur(10px);
     border-left:1px solid var(--panel-border);
     transform:translateX(100%);transition:transform .28s ease;
     z-index:18;padding:22px;overflow-y:auto;
+    box-shadow:-4px 0 16px rgba(0,0,0,0.05);
   }
   .side-panel.open{transform:translateX(0);}
   .side-panel h2{font-size:1.05rem;margin:0 0 4px;font-weight:600;}
   .side-panel .subtitle{font-size:.76rem;color:var(--text-dim);margin-bottom:18px;font-weight:300;}
   .side-panel .close-x{
     position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:50%;
-    border:none;background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;
+    border:none;background:var(--bg-0);color:var(--text-dim);cursor:pointer;
   }
   .stat-row{display:flex;gap:8px;margin-bottom:18px;}
-  .stat-pill{flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,.04);}
-  .stat-pill b{display:block;font-size:1.2rem;}
+  .stat-pill{flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:var(--bg-0); border:1px solid var(--panel-border);}
+  .stat-pill b{display:block;font-size:1.2rem; color:var(--text);}
   .stat-pill span{font-size:.66rem;color:var(--text-dim);}
   .panel-section{margin-bottom:18px;}
   .panel-section h3{font-size:.78rem;text-transform:none;color:var(--text-dim);font-weight:400;margin:0 0 8px;}
   .formula-box{
-    background:rgba(255,255,255,.04);border:1px solid var(--panel-border);
+    background:var(--bg-0);border:1px solid var(--panel-border);
     border-radius:10px;padding:12px 14px;font-size:.9rem;margin-bottom:10px;
   }
-  .formula-box .fname{color:var(--blue-light);font-size:.72rem;display:block;margin-bottom:4px;}
-  .desc-text{font-size:.85rem;line-height:1.65;color:#c9d2e3;font-weight:300;}
-  .net-visual{width:100%;border-radius:10px;background:rgba(255,255,255,.03);padding:14px;margin-bottom:12px;}
+  .formula-box .fname{color:var(--blue);font-size:.72rem;display:block;margin-bottom:4px;font-weight:500;}
+  .desc-text{font-size:.85rem;line-height:1.65;color:var(--text);font-weight:300;}
+  .net-visual{width:100%;border-radius:10px;background:var(--bg-0);padding:14px;margin-bottom:12px; border:1px solid var(--panel-border);}
   .net-visual svg{width:100%;height:auto;display:block;}
 
   /* ---------- CUSTOM MODEL BUILDER PANEL ---------- */
   .preset-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
   .preset-pill{
-    background:rgba(255,255,255,.04);border:1px solid var(--panel-border);
-    color:#cbd5e1;font-size:.78rem;font-weight:400;padding:7px 13px;border-radius:16px;
+    background:var(--bg-0);border:1px solid var(--panel-border);
+    color:var(--text);font-size:.78rem;font-weight:400;padding:7px 13px;border-radius:16px;
     cursor:pointer;transition:all .18s ease;white-space:nowrap;
   }
-  .preset-pill:hover{background:rgba(255,255,255,.09);color:#fff;}
-  .preset-pill.active{background:var(--blue);border-color:var(--blue-light);color:#fff;font-weight:500;box-shadow:0 0 10px rgba(59,130,246,.35);}
+  .preset-pill:hover{background:var(--panel-border);}
+  .preset-pill.active{background:var(--panel-active);border-color:var(--blue);color:var(--blue);font-weight:500;}
   .select-hint{
-    font-size:.78rem;color:#93c5fd;background:rgba(59,130,246,.1);
-    border:1px dashed rgba(96,165,250,.35);border-radius:10px;padding:10px 12px;line-height:1.55;
+    font-size:.78rem;color:var(--blue);background:var(--panel-active);
+    border:1px dashed var(--blue-light);border-radius:10px;padding:10px 12px;line-height:1.55;
   }
   .selected-tag{
-    display:inline-block;font-size:.72rem;color:var(--blue-light);background:rgba(59,130,246,.12);
-    border:1px solid rgba(96,165,250,.3);border-radius:12px;padding:4px 10px;margin-bottom:12px;
+    display:inline-block;font-size:.72rem;color:var(--blue);background:var(--panel-active);
+    border:1px solid var(--blue-light);border-radius:12px;padding:4px 10px;margin-bottom:12px;
   }
   .axis-label{font-size:.76rem;color:var(--text-dim);margin-bottom:8px;}
   .axis-row{display:flex;gap:10px;margin-bottom:4px;}
   .axis-row > div{flex:1;}
   .axis-row label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;}
   .axis-row input{
-    width:100%;background:rgba(0,0,0,.28);border:1px solid var(--panel-border);
+    width:100%;background:var(--bg-0);border:1px solid var(--panel-border);
     color:var(--text);font-size:.86rem;padding:9px 10px;border-radius:9px;
     font-family:monospace;outline:none;transition:border .18s ease;
   }
   .axis-row input:focus{border-color:var(--blue);}
-  .axis-row input.invalid{border-color:#f87171 !important;background:rgba(248,113,113,.1);}
+  .axis-row input.invalid{border-color:#ef4444 !important;background:#fef2f2;}
   .generate-btn{
     width:100%;background:var(--blue);border:none;color:#fff;font-size:.86rem;font-weight:500;
     padding:11px;border-radius:10px;cursor:pointer;transition:background .18s ease;margin-top:10px;
   }
-  .generate-btn:hover{background:#2563eb;}
-  .axis-error{font-size:.72rem;color:#f87171;margin-top:8px;display:none;}
-  .axis-hint{font-size:.68rem;color:#64748b;margin-top:10px;line-height:1.55;}
+  .generate-btn:hover{background:#0f766e;}
+  .axis-error{font-size:.72rem;color:#ef4444;margin-top:8px;display:none;}
+  .axis-hint{font-size:.68rem;color:var(--text-dim);margin-top:10px;line-height:1.55;}
 
   @media (max-width:760px){
-    .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:25;transform:translateX(-100%);transition:transform .25s ease;box-shadow:12px 0 30px rgba(0,0,0,.4);}
+    .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:25;transform:translateX(-100%);transition:transform .25s ease;box-shadow:12px 0 30px rgba(0,0,0,.15);}
     .sidebar.open{transform:translateX(0);}
+    .sidebar-header{display:flex;}
     .toolbar{gap:6px;bottom:14px;}
     .tool-btn{padding:9px 12px;font-size:.72rem;}
     .tool-btn span.tbl-txt{display:none;}
     .side-panel{width:100vw;max-width:100vw;}
+    .topbar{padding:10px 10px;gap:8px;}
+    .brand{gap:8px;min-width:0;flex:1 1 auto;}
+    .brand-mark{width:24px;height:24px;flex-shrink:0;}
+    .brand-text{min-width:0;overflow:hidden;flex:1 1 auto;}
+    .brand h1{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .brand span{display:none;}
+    .topbar-actions{gap:5px;flex-shrink:0;}
+    #helpBtn{display:none;}
+    .icon-btn{width:32px;height:32px;}
+    .ar-btn{padding:8px 10px;gap:0;}
+    .ar-btn .ar-label{display:none;}
+    .ar-exit-float{padding:9px 14px;font-size:.76rem;}
   }
 </style>
 </head>
@@ -313,28 +366,31 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="brand-mark"></div>
-      <div>
+      <div class="brand-text">
         <h1>Geometry Learning with WEB AR</h1>
         <span>สื่อการเรียนรู้เรขาคณิตด้วยเทคโนโลยีความเป็นจริงเสริม</span>
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" title="ช่วยเหลือ">
+      <button class="icon-btn" id="helpBtn" title="ช่วยเหลือ">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.2a2.5 2.5 0 0 1 4.9.7c0 1.6-2.2 1.6-2.4 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>
       </button>
-      <button class="icon-btn" id="cameraPreviewBtn" title="โหมดกล้อง (พรีวิวคล้าย AR)">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="14" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+      <button class="icon-btn" id="cameraBtn" title="โหมดกล้อง — ซ้อนโมเดลบนภาพจากกล้อง">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="14" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
       </button>
-      <button class="ar-btn">
+      <button class="ar-btn" id="arBtn" title="โหมด AR จริง">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2L12 2z" fill="#fff"/></svg>
-        เข้าสู่โหมด AR
+        <span class="ar-label">โหมด AR</span>
       </button>
     </div>
   </header>
 
   <div class="body">
-
     <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>เมนูรูปทรง</span>
+        <button class="sidebar-close" id="sidebarClose">✕</button>
+      </div>
       <div class="dim-tabs">
         <button class="dim-tab active" data-dim="3d">โมเดล 3 มิติ</button>
         <button class="dim-tab" data-dim="2d">โมเดล 2 มิติ</button>
@@ -342,10 +398,12 @@
       <div class="sidebar-label" id="sidebarLabel">เลือกรูปทรงเพื่อเริ่มเรียนรู้</div>
       <div class="shape-list" id="shapeList"></div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main class="viewport">
       <video id="camPreview" autoplay playsinline muted></video>
       <canvas id="three-canvas"></canvas>
+      <button id="arExitFloatBtn" class="ar-exit-float" style="display:none;">✕ ออกจากโหมด AR</button>
       <div class="svg-stage hidden" id="svgStage"><div id="svgFlip"></div></div>
 
       <div class="idle-overlay" id="idleOverlay">
@@ -355,6 +413,7 @@
       </div>
 
       <div class="label-layer" id="labelLayer"></div>
+      <div class="gesture-hint hidden" id="gestureHint">👆 ลากเพื่อหมุน 360° · บีบสองนิ้ว/เลื่อนล้อเมาส์เพื่อซูม</div>
 
       <div class="toolbar">
         <button class="tool-btn" data-tool="label" id="toolLabelBtn">
@@ -499,38 +558,34 @@ function pyramidVerts(r,halfH,seg){
 }
 
 /* =====================================================================
-   DATA — 2D SHAPES
+   DATA — 2D SHAPES (UPDATED TO 5 SHAPES)
 ===================================================================== */
 const SHAPES_2D = {
-  circle:{ name:'วงกลม', en:'Circle', sides:0, angleSum:'-',
-    desc:'วงกลมคือเส้นโค้งปิดที่ทุกจุดอยู่ห่างจากจุดศูนย์กลางเป็นระยะเท่ากัน เรียกระยะนี้ว่ารัศมี',
-    perimeter:'P = 2πr', area:'A = πr²', kind:'circle' },
-  triangle:{ name:'สามเหลี่ยมด้านเท่า', en:'Equilateral Triangle', sides:3, angleSum:'180°',
-    desc:'รูปสามเหลี่ยมด้านเท่ามีด้านทั้ง 3 ด้านยาวเท่ากัน และมุมภายในทุกมุมเท่ากันมุมละ 60 องศา',
-    perimeter:'P = 3a', area:'A = (√3⁄4)a²', kind:'polygon', n:3 },
-  square:{ name:'สี่เหลี่ยมจัตุรัส', en:'Square', sides:4, angleSum:'360°',
-    desc:'สี่เหลี่ยมจัตุรัสมีด้านทั้ง 4 ด้านยาวเท่ากัน และมุมภายในทุกมุมเป็นมุมฉาก',
-    perimeter:'P = 4a', area:'A = a²', kind:'polygon', n:4 },
   rectangle:{ name:'สี่เหลี่ยมผืนผ้า', en:'Rectangle', sides:4, angleSum:'360°',
     desc:'สี่เหลี่ยมผืนผ้ามีด้านตรงข้ามยาวเท่ากันเป็นคู่ และมุมภายในทุกมุมเป็นมุมฉาก',
     perimeter:'P = 2(กว้าง+ยาว)', area:'A = กว้าง × ยาว', kind:'rect' },
-  pentagon:{ name:'ห้าเหลี่ยมด้านเท่า', en:'Regular Pentagon', sides:5, angleSum:'540°',
-    desc:'รูปห้าเหลี่ยมด้านเท่ามีด้านและมุมภายในเท่ากันทั้ง 5 ด้าน/มุม มุมภายในมุมละ 108 องศา',
-    perimeter:'P = 5a', area:'A = (1⁄4)√(5(5+2√5))·a²', kind:'polygon', n:5 },
-  hexagon:{ name:'หกเหลี่ยมด้านเท่า', en:'Regular Hexagon', sides:6, angleSum:'720°',
-    desc:'รูปหกเหลี่ยมด้านเท่ามีด้านเท่ากันทั้ง 6 ด้าน มุมภายในมุมละ 120 องศา',
-    perimeter:'P = 6a', area:'A = (3√3⁄2)a²', kind:'polygon', n:6 }
+  circle:{ name:'วงกลม', en:'Circle', sides:0, angleSum:'-',
+    desc:'วงกลมคือเส้นโค้งปิดที่ทุกจุดอยู่ห่างจากจุดศูนย์กลางเป็นระยะเท่ากัน เรียกระยะนี้ว่ารัศมี',
+    perimeter:'P = 2πr', area:'A = πr²', kind:'circle' },
+  triangle:{ name:'สามเหลี่ยม', en:'Triangle', sides:3, angleSum:'180°',
+    desc:'รูปสามเหลี่ยมมีด้าน 3 ด้าน และมุมภายในรวมกันได้ 180 องศา',
+    perimeter:'P = a + b + c', area:'A = (1⁄2) × ฐาน × สูง', kind:'triangle', n:3 },
+  trapezoid:{ name:'สี่เหลี่ยมคางหมู', en:'Trapezoid', sides:4, angleSum:'360°',
+    desc:'สี่เหลี่ยมคางหมูมีด้านขนานกันเพียง 1 คู่',
+    perimeter:'P = a + b + c + d', area:'A = (1⁄2) × ผลบวกด้านคู่ขนาน × สูง', kind:'trapezoid' },
+  rhombus:{ name:'สี่เหลี่ยมขนมเปียกปูน', en:'Rhombus', sides:4, angleSum:'360°',
+    desc:'สี่เหลี่ยมขนมเปียกปูนมีด้านทั้งสี่ยาวเท่ากัน แต่มุมภายในไม่เป็นมุมฉาก เส้นทแยงมุมตัดกันเป็นมุมฉาก',
+    perimeter:'P = 4a', area:'A = ฐาน × สูง หรือ (1⁄2) × ผลคูณของเส้นทแยงมุม', kind:'rhombus' }
 };
 
 /* =====================================================================
-   DATA — CUSTOM 3D MODEL BUILDER (ported from the prototype)
-   ผู้ใช้เลือกรูปทรงสำเร็จรูปก่อน แล้วกำหนดขนาดแกน X, Y, Z เอง
+   DATA — CUSTOM 3D MODEL BUILDER
 ===================================================================== */
 function fmt(n){ return (Math.round(n*100)/100).toLocaleString('th-TH'); }
 
 const PRESETS = {
   box: {
-    th:'กล่องสี่เหลี่ยม', en:'Box / Cuboid', color:0x60a5fa, geometryType:'box', flatShading:false,
+    th:'กล่องสี่เหลี่ยม', en:'Box / Cuboid', color:0x0d9488, geometryType:'box', flatShading:false,
     faces:6, edges:12, vertices:8, formulaTitle:'กล่องสี่เหลี่ยมมุมฉาก / ลูกบาศก์',
     formulas:(x,y,z)=>[
       ['พื้นที่ผิวทั้งหมด (S)', `S = 2(xy + yz + zx) = 2(${fmt(x*y)} + ${fmt(y*z)} + ${fmt(z*x)}) = ${fmt(2*(x*y+y*z+z*x))} หน่วย²`],
@@ -542,7 +597,7 @@ const PRESETS = {
     netKey:'cuboid'
   },
   hexPrism: {
-    th:'ปริซึมหกเหลี่ยม', en:'Hexagonal Prism', color:0x34d399, geometryType:'hexPrism', flatShading:true,
+    th:'ปริซึมหกเหลี่ยม', en:'Hexagonal Prism', color:0x14b8a6, geometryType:'hexPrism', flatShading:true,
     faces:8, edges:18, vertices:12, formulaTitle:'ปริซึมหกเหลี่ยมด้านเท่า',
     formulas:(x,y,z)=>{
       const s=x/2, h=y; const baseArea=(3*Math.sqrt(3)/2)*s*s;
@@ -559,7 +614,7 @@ const PRESETS = {
     netKey:'hexprism'
   },
   pyramid: {
-    th:'พีระมิด', en:'Square Pyramid', color:0xfbbf24, geometryType:'pyramid', flatShading:true,
+    th:'พีระมิด', en:'Square Pyramid', color:0x2dd4bf, geometryType:'pyramid', flatShading:true,
     faces:5, edges:8, vertices:5, formulaTitle:'พีระมิดฐานสี่เหลี่ยมจัตุรัส',
     formulas:(x,y,z)=>{
       const a=x, h=y; const slant=Math.sqrt((a/2)**2+h**2);
@@ -577,7 +632,7 @@ const PRESETS = {
     netKey:'pyramid'
   },
   cylinder: {
-    th:'ทรงกระบอก', en:'Cylinder', color:0xa78bfa, geometryType:'cylinder', flatShading:false,
+    th:'ทรงกระบอก', en:'Cylinder', color:0x0f766e, geometryType:'cylinder', flatShading:false,
     faces:3, edges:2, vertices:0, formulaTitle:'ทรงกระบอก',
     formulas:(x,y,z)=>{
       const r=x/2, h=y; const volume=Math.PI*r*r*h; const surface=2*Math.PI*r*(r+h);
@@ -593,7 +648,7 @@ const PRESETS = {
     netKey:'cylinder'
   },
   cone: {
-    th:'ทรงกรวย', en:'Cone', color:0xfb7185, geometryType:'cone', flatShading:false,
+    th:'ทรงกรวย', en:'Cone', color:0x115e59, geometryType:'cone', flatShading:false,
     faces:2, edges:1, vertices:1, formulaTitle:'ทรงกรวย',
     formulas:(x,y,z)=>{
       const r=x/2, h=y; const slant=Math.sqrt(r*r+h*h);
@@ -611,7 +666,7 @@ const PRESETS = {
     netKey:'cone'
   },
   sphere: {
-    th:'ทรงกลม / ทรงรี', en:'Sphere / Ellipsoid', color:0x38bdf8, geometryType:'sphere', flatShading:false,
+    th:'ทรงกลม / ทรงรี', en:'Sphere / Ellipsoid', color:0x5eead4, geometryType:'sphere', flatShading:false,
     faces:1, edges:0, vertices:0, formulaTitle:'ทรงกลม / ทรงรี',
     formulas:(x,y,z)=>{
       const a=x/2, b=y/2, c=z/2; const volume=(4/3)*Math.PI*a*b*c;
@@ -629,10 +684,10 @@ const PRESETS = {
       return [
         ['ครึ่งแกน (semi-axis) a, b, c', `a = X/2 = ${fmt(a)}, b = Y/2 = ${fmt(b)}, c = Z/2 = ${fmt(c)} หน่วย`],
         ['ปริมาตร (V)', `V = (4/3)πabc = ${fmt(volume)} หน่วย³`],
-        ['พื้นที่ผิว โดยประมาณ (S)', `S ≈ ${fmt(surfaceApprox)} หน่วย² (สูตรประมาณของ Knud Thomsen)`],
+        ['พื้นที่ผิว โดยประมาณ (S)', `S ≈ ${fmt(surfaceApprox)} หน่วย²`],
       ];
     },
-    description:'ทรงกลม/ทรงรีคือรูปทรงพื้นผิวโค้งต่อเนื่อง หากกำหนดแกน X, Y, Z เท่ากันทั้งหมดจะได้ทรงกลมสมบูรณ์ หากตั้งไม่เท่ากันจะกลายเป็นทรงรี (Ellipsoid) รูปทรงนี้ไม่มีรูปคลี่ (net) เนื่องจากพื้นผิวโค้งต่อเนื่องไม่สามารถคลี่ออกเป็นระนาบได้',
+    description:'ทรงกลม/ทรงรีคือรูปทรงพื้นผิวโค้งต่อเนื่อง หากกำหนดแกน X, Y, Z เท่ากันทั้งหมดจะได้ทรงกลมสมบูรณ์ หากตั้งไม่เท่ากันจะกลายเป็นทรงรี รูปทรงนี้ไม่มีรูปคลี่ (net)',
     examples:'ลูกบอล, ลูกโลก, ไข่, ลูกรักบี้',
     net:'ทรงกลม/ทรงรีไม่สามารถคลี่ออกเป็นรูปแบนราบได้พอดี จึงต้องใช้การประมาณ เช่น การฉายแผนที่โลก',
     netKey:'sphere'
@@ -659,33 +714,33 @@ let currentDim = '3d';
 let currentShapeId = null;
 let labelsOn = false;
 let activeTool = null;
-
 let customPresetId = null;
 let customAxis = { x:3, y:3, z:3 };
 
 /* =====================================================================
-   THREE.JS SETUP
+   THREE.JS SETUP (Light Theme adjusted)
 ===================================================================== */
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000, 0); 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45,1,.1,100);
 camera.position.set(0,0,4.6);
 
-scene.add(new THREE.AmbientLight(0xffffff,0.65));
-const key = new THREE.DirectionalLight(0xffffff,0.9); key.position.set(3,4,5); scene.add(key);
-const rim = new THREE.DirectionalLight(0x7fb2ff,0.5); rim.position.set(-4,-2,-3); scene.add(rim);
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const key = new THREE.DirectionalLight(0xffffff,0.6); key.position.set(3,4,5); scene.add(key);
+const rim = new THREE.DirectionalLight(0x0d9488,0.3); rim.position.set(-4,-2,-3); scene.add(rim);
 
-const faceMaterial = new THREE.MeshStandardMaterial({color:0xe7ecf6, roughness:.55, metalness:.08});
-const edgeMaterialSharp = new THREE.LineBasicMaterial({color:0xcfe0ff});
-const vertexMaterial = new THREE.MeshBasicMaterial({color:0xf6b93b});
+const faceMaterial = new THREE.MeshStandardMaterial({color:0xf8fafc, roughness:.4, metalness:.1});
+const edgeMaterialSharp = new THREE.LineBasicMaterial({color:0x94a3b8});
+const vertexMaterial = new THREE.MeshBasicMaterial({color:0x0d9488});
 const vertexGeo = new THREE.SphereGeometry(.045,16,16);
 
 let mainGroup = new THREE.Group(); scene.add(mainGroup);
 let idleGroup = new THREE.Group(); scene.add(idleGroup);
 let currentSolidGroup = null;
-let currentNet = null;   // {group, setOpenness} for the shape currently on screen (box shapes only)
+let currentNet = null;
 let netOpen = false;
 
 function resizeRenderer(){
@@ -713,21 +768,20 @@ function buildSolidMesh(def){
   return group;
 }
 
-/* ---- custom model builder mesh (box/hexPrism/pyramid/cylinder/cone/sphere scaled by X,Y,Z) ---- */
 function buildCustomMesh(presetId, x, y, z){
   const preset = PRESETS[presetId];
   const geo = createUnitGeometry(preset.geometryType);
   geo.scale(x,y,z);
   geo.computeVertexNormals();
   const mat = new THREE.MeshStandardMaterial({
-    color:preset.color, roughness:.42, metalness:.12,
+    color:preset.color, roughness:.3, metalness:.1,
     flatShading:preset.flatShading, side:THREE.DoubleSide
   });
   const group = new THREE.Group();
   const mesh = new THREE.Mesh(geo, mat);
   group.add(mesh);
   const edges = new THREE.EdgesGeometry(geo, 1);
-  group.add(new THREE.LineSegments(edges, edgeMaterialSharp));
+  group.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x334155})));
   return group;
 }
 
@@ -749,44 +803,39 @@ function updateCustomToolbarState(){
   document.querySelector('.tool-btn[data-tool="net"]').disabled = !(hasModel && customPresetId!=='sphere');
 }
 
-/* ---- animated unfold net (cube / cuboid) ----
-   Builds a real hinged net: Front stays fixed, Top/Bottom/Left/Right hinge off
-   its four edges, and Back is chained off the outer edge of Right. Calling
-   setOpenness(t) with t=0 shows it folded into the solid box shape, t=1 lays
-   it out completely flat as a net. */
+/* ---- animated unfold net (cube / cuboid) ---- */
 function buildBoxNet(w,h,d){
   const group = new THREE.Group();
   const panels = [];
-  function mat(c){ return new THREE.MeshStandardMaterial({color:c, roughness:.6, metalness:.05, side:THREE.DoubleSide}); }
+  function mat(c){ return new THREE.MeshStandardMaterial({color:c, roughness:.4, metalness:.1, side:THREE.DoubleSide}); }
   function makePanel(pw,ph,color){
     const geo = new THREE.PlaneGeometry(pw,ph);
     const mesh = new THREE.Mesh(geo, mat(color));
-    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:0x1d4ed8})));
+    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:0x64748b})));
     return mesh;
   }
 
-  group.add(makePanel(w,h,0xdbe6ff)); // front (static reference)
-
+  group.add(makePanel(w,h,0xe2e8f0)); // front
   const topPivot = new THREE.Group(); topPivot.position.set(0,h/2,0);
-  const topMesh = makePanel(w,d,0xffe3b3); topMesh.position.set(0,d/2,0);
+  const topMesh = makePanel(w,d,0xf8fafc); topMesh.position.set(0,d/2,0);
   topPivot.add(topMesh); group.add(topPivot);
   panels.push({obj:topPivot, axis:'x', target:-Math.PI/2});
 
   const bottomPivot = new THREE.Group(); bottomPivot.position.set(0,-h/2,0);
-  const bottomMesh = makePanel(w,d,0xc9f2e6); bottomMesh.position.set(0,-d/2,0);
+  const bottomMesh = makePanel(w,d,0xf1f5f9); bottomMesh.position.set(0,-d/2,0);
   bottomPivot.add(bottomMesh); group.add(bottomPivot);
   panels.push({obj:bottomPivot, axis:'x', target:Math.PI/2});
 
   const leftPivot = new THREE.Group(); leftPivot.position.set(-w/2,0,0);
-  const leftMesh = makePanel(d,h,0xf6c9e0); leftMesh.position.set(-d/2,0,0);
+  const leftMesh = makePanel(d,h,0xe6f7f5); leftMesh.position.set(-d/2,0,0);
   leftPivot.add(leftMesh); group.add(leftPivot);
   panels.push({obj:leftPivot, axis:'y', target:-Math.PI/2});
 
   const rightPivot = new THREE.Group(); rightPivot.position.set(w/2,0,0);
-  const rightMesh = makePanel(d,h,0xd8d1ff); rightMesh.position.set(d/2,0,0);
+  const rightMesh = makePanel(d,h,0xccfbf1); rightMesh.position.set(d/2,0,0);
   rightPivot.add(rightMesh);
   const backHinge = new THREE.Group(); backHinge.position.set(d,0,0);
-  const backMesh = makePanel(w,h,0xffd3ad); backMesh.position.set(w/2,0,0);
+  const backMesh = makePanel(w,h,0x99f6e4); backMesh.position.set(w/2,0,0);
   backHinge.add(backMesh);
   rightPivot.add(backHinge);
   group.add(rightPivot);
@@ -869,7 +918,7 @@ function buildIdleScene(){
   idleIds.forEach((id,i)=>{
     const def = SHAPES_3D[id];
     const geo = def.geo();
-    const mat = new THREE.MeshStandardMaterial({color:0xdbe6ff, roughness:.6, metalness:.05, transparent:true, opacity:.5});
+    const mat = new THREE.MeshStandardMaterial({color:0x0d9488, roughness:.4, metalness:.1, transparent:true, opacity:.3});
     const mesh = new THREE.Mesh(geo, mat);
     const scale = .34;
     mesh.scale.set(scale,scale,scale);
@@ -883,68 +932,70 @@ function buildIdleScene(){
 }
 buildIdleScene();
 
-/* ---- rotate and zoom 3D solids with mouse or touch ---- */
-let dragging=false;
-const activePointers = new Map();
-let lastPinchDistance = null;
-const MIN_CAMERA_Z = 2.2, MAX_CAMERA_Z = 12;
-
-function clampCameraZoom(z){
-  return Math.max(MIN_CAMERA_Z, Math.min(MAX_CAMERA_Z, z));
-}
-function zoomCamera(amount){
-  camera.position.z = clampCameraZoom(camera.position.z + amount);
-}
-function pointerDistance(){
-  const pointers = [...activePointers.values()];
-  if(pointers.length < 2) return null;
-  return Math.hypot(pointers[0].x-pointers[1].x, pointers[0].y-pointers[1].y);
-}
-
+/* ---- drag to rotate ---- */
+let dragging=false, lastX=0, lastY=0;
 canvas.addEventListener('pointerdown', e=>{
-  if(currentDim!=='3d' || !currentShapeId) return;
-  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-  canvas.setPointerCapture(e.pointerId);
-  dragging = activePointers.size === 1;
-  lastPinchDistance = pointerDistance();
-  if(dragging) canvas.classList.add('grabbing');
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.classList.add('grabbing');
+  hideGestureHint();
 });
-
-canvas.addEventListener('pointermove', e=>{
-  if(!activePointers.has(e.pointerId)) return;
-  const previous = activePointers.get(e.pointerId);
-  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-
-  if(activePointers.size >= 2){
-    const distance = pointerDistance();
-    if(lastPinchDistance !== null && distance !== null) zoomCamera((lastPinchDistance-distance)*.012);
-    lastPinchDistance = distance;
-    dragging = false;
-    canvas.classList.remove('grabbing');
-    return;
-  }
-
+window.addEventListener('pointerup', ()=>{dragging=false; canvas.classList.remove('grabbing');});
+window.addEventListener('pointermove', e=>{
   if(!dragging) return;
-  const dx=e.clientX-previous.x, dy=e.clientY-previous.y;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
   mainGroup.rotation.y += dx*.008;
-  mainGroup.rotation.x += dy*.008;
+  mainGroup.rotation.x = Math.max(-1,Math.min(1, mainGroup.rotation.x + dy*.008));
 });
 
-function stopPointer(e){
-  activePointers.delete(e.pointerId);
-  if(canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-  lastPinchDistance = pointerDistance();
-  dragging = activePointers.size === 1;
-  if(!dragging) canvas.classList.remove('grabbing');
-}
-canvas.addEventListener('pointerup', stopPointer);
-canvas.addEventListener('pointercancel', stopPointer);
+/* ---- zoom ---- */
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+let modelScale = 1;
+const MODEL_SCALE_MIN = 0.4, MODEL_SCALE_MAX = 2.5;
+function applyModelScale(){ mainGroup.scale.set(modelScale, modelScale, modelScale); }
+function resetModelScale(){ modelScale = 1; applyModelScale(); }
+
 canvas.addEventListener('wheel', e=>{
-  if(currentDim==='3d' && currentShapeId){
-    e.preventDefault();
-    zoomCamera(e.deltaY*.008);
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  e.preventDefault();
+  modelScale = clamp(modelScale - e.deltaY*0.0015, MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+  applyModelScale();
+  hideGestureHint();
+}, {passive:false});
+
+let isPinching = false, pinchStartDist = 0, pinchStartScale = 1;
+canvas.addEventListener('touchstart', e=>{
+  if(currentDim!=='3d' || !currentShapeId || xrSession) return;
+  if(e.touches.length===2){
+    isPinching = true;
+    pinchStartDist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    pinchStartScale = modelScale;
+    hideGestureHint();
   }
-},{passive:false});
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  if(isPinching && e.touches.length===2){
+    e.preventDefault();
+    const dist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+    modelScale = clamp(pinchStartScale*(dist/pinchStartDist), MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+    applyModelScale();
+  }
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{ if(e.touches.length<2) isPinching = false; });
+
+/* ---- hint ---- */
+const gestureHint = document.getElementById('gestureHint');
+let gestureHintTimer = null;
+function showGestureHint(){
+  if(!gestureHint) return;
+  gestureHint.classList.remove('hidden');
+  clearTimeout(gestureHintTimer);
+  gestureHintTimer = setTimeout(hideGestureHint, 4200);
+}
+function hideGestureHint(){
+  if(!gestureHint) return;
+  gestureHint.classList.add('hidden');
+}
 
 /* ---- drag to flip (2D shapes) ---- */
 let rotY2D = 0, dragging2D = false, lastX2D = 0;
@@ -953,6 +1004,7 @@ const svgFlipEl = document.getElementById('svgFlip');
 svgStageEl.addEventListener('pointerdown', e=>{
   if(currentDim!=='2d' || !currentShapeId) return;
   dragging2D = true; lastX2D = e.clientX; svgFlipEl.classList.add('grabbing');
+  hideGestureHint();
 });
 window.addEventListener('pointerup', ()=>{ dragging2D=false; svgFlipEl.classList.remove('grabbing'); });
 window.addEventListener('pointermove', e=>{
@@ -960,32 +1012,37 @@ window.addEventListener('pointermove', e=>{
   const dx = e.clientX-lastX2D;
   lastX2D = e.clientX;
   rotY2D += dx*.6;
-  svgFlipEl.style.transform = `rotateY(${rotY2D}deg)`;
+  apply2DScale();
 });
+
+let shape2DScale = 1;
+function apply2DScale(){ svgFlipEl.style.setProperty('--extra-scale', shape2DScale); svgFlipEl.style.transform = `rotateY(${rotY2D}deg) scale(${shape2DScale})`; }
+svgStageEl.addEventListener('wheel', e=>{
+  if(currentDim!=='2d' || !currentShapeId) return;
+  e.preventDefault();
+  shape2DScale = clamp(shape2DScale - e.deltaY*0.0015, MODEL_SCALE_MIN, MODEL_SCALE_MAX);
+  apply2DScale();
+  hideGestureHint();
+}, {passive:false});
 
 /* ---- render loop ---- */
 const clock = new THREE.Clock();
 function animate(){
-  requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
-
   if(!currentShapeId){
     idleMeshes.forEach(m=>{
       m.rotation.x += .003+m.userData.speedX*0.002;
       m.rotation.y += .004+m.userData.speedY*0.002;
       m.position.y += Math.sin(t*0.6+m.userData.phase)*0.0018;
     });
-  } else if(!dragging){
+  } else if(!dragging && !xrSession){
     mainGroup.rotation.y += 0.0032;
   }
   renderer.render(scene,camera);
-  positionLabels();
+  if(!xrSession) positionLabels();
 }
-animate();
+renderer.setAnimationLoop(animate);
 
-/* =====================================================================
-   LOGIN / SPLASH SCREEN
-===================================================================== */
 document.getElementById('loginScreen').addEventListener('click', ()=>{
   const login = document.getElementById('loginScreen');
   login.classList.add('fade-out');
@@ -994,34 +1051,113 @@ document.getElementById('loginScreen').addEventListener('click', ()=>{
 });
 
 /* =====================================================================
-   CAMERA PREVIEW (pseudo-AR mode next to the real AR button)
+   AR MODE
 ===================================================================== */
-let cameraOn = false, camStream = null;
-async function toggleCameraPreview(){
-  const btn = document.getElementById('cameraPreviewBtn');
-  const video = document.getElementById('camPreview');
-  if(!cameraOn){
-    try{
-      camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
-      video.srcObject = camStream;
-      video.classList.add('show');
-      cameraOn = true;
-      btn.classList.add('on');
-    }catch(err){
-      alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์');
-    }
-  } else {
-    if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
-    video.classList.remove('show');
-    video.srcObject = null;
-    cameraOn = false;
-    btn.classList.remove('on');
+const appEl = document.querySelector('.app');
+const arBtn = document.getElementById('arBtn');
+const cameraBtn = document.getElementById('cameraBtn');
+const arExitFloatBtn = document.getElementById('arExitFloatBtn');
+const camPreviewVideo = document.getElementById('camPreview');
+
+let xrSession = null;
+let camStream = null;
+let arFallbackActive = false;
+
+function setARActive(active){
+  appEl.classList.toggle('ar-active', active);
+  arExitFloatBtn.style.display = active ? 'flex' : 'none';
+}
+
+function ensureAModelIsSelected(){
+  if(currentDim!=='3d'){ document.querySelector('.dim-tab[data-dim="3d"]').click(); }
+  if(!currentShapeId){ selectShape('cube'); }
+}
+
+function placeModelForAR(){
+  mainGroup.position.set(0, -0.4, -1.6);
+  mainGroup.scale.set(.55,.55,.55);
+}
+function resetModelPlacement(){
+  mainGroup.position.set(0,0,0);
+  mainGroup.scale.set(1,1,1);
+  camera.position.set(0,0,BASE_CAMERA_Z);
+}
+
+async function enterRealAR(){
+  if(!navigator.xr || !navigator.xr.isSessionSupported){
+    alert('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับ WebXR AR\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    return;
+  }
+  let supported = false;
+  try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){ supported = false; }
+  if(!supported){
+    alert('อุปกรณ์นี้ไม่รองรับ WebXR AR\n\nกรุณาใช้ปุ่ม "โหมดกล้อง" แทน');
+    return;
+  }
+  ensureAModelIsSelected();
+  try{
+    const session = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures:['local'],
+      optionalFeatures:['local-floor','dom-overlay'],
+      domOverlay:{root: document.body}
+    });
+    xrSession = session;
+    renderer.xr.enabled = true;
+    try{ renderer.xr.setReferenceSpaceType('local-floor'); }
+    catch(e){ renderer.xr.setReferenceSpaceType('local'); }
+    await renderer.xr.setSession(session);
+    session.addEventListener('end', onXRSessionEnd);
+    setARActive(true);
+    placeModelForAR();
+  }catch(err){
+    if(xrSession){ try{ xrSession.end(); }catch(e){} }
+    xrSession = null;
+    renderer.xr.enabled = false;
+    resetModelPlacement();
+    setARActive(false);
+    alert('ไม่สามารถเปิดโหมด AR จริงได้บนอุปกรณ์นี้');
   }
 }
-document.getElementById('cameraPreviewBtn').addEventListener('click', toggleCameraPreview);
+
+function onXRSessionEnd(){
+  xrSession = null;
+  renderer.xr.enabled = false;
+  resetModelPlacement();
+  setARActive(false);
+}
+
+async function enterCameraMode(){
+  ensureAModelIsSelected();
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+    camPreviewVideo.srcObject = camStream;
+    camPreviewVideo.classList.add('show');
+    arFallbackActive = true;
+    setARActive(true);
+  }catch(err){
+    alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องของอุปกรณ์');
+  }
+}
+function exitCameraMode(){
+  if(camStream) camStream.getTracks().forEach(tr=>tr.stop());
+  camPreviewVideo.classList.remove('show');
+  camPreviewVideo.srcObject = null;
+  camStream = null;
+  arFallbackActive = false;
+  setARActive(false);
+}
+
+function exitAR(){
+  if(xrSession){ xrSession.end(); }
+  else if(arFallbackActive){ exitCameraMode(); }
+}
+
+arBtn.addEventListener('click', enterRealAR);
+cameraBtn.addEventListener('click', enterCameraMode);
+arExitFloatBtn.addEventListener('click', exitAR);
 
 /* =====================================================================
-   LABEL LAYER (V/E/F chips projected from 3D anchor points)
+   LABEL LAYER
 ===================================================================== */
 const labelLayer = document.getElementById('labelLayer');
 let chipAnchors = [];
@@ -1041,7 +1177,6 @@ function setupLabelsFor(def){
     chipAnchors.push({el:chip, anchor:s.anchor});
   });
 }
-/* label chips for a custom-built model — show the X, Y, Z lengths instead of V/E/F */
 function setupCustomLabels(x,y,z){
   labelLayer.innerHTML='';
   chipAnchors = [];
@@ -1082,33 +1217,34 @@ const svgStage = document.getElementById('svgStage');
 
 function swatchSVG(kind){
   const M = {
-    cube:'<path d="M12 3 L20 7 L20 15 L12 19 L4 15 L4 7 Z" fill="#93c5fd"/><path d="M12 3 L20 7 L12 11 L4 7 Z" fill="#dbe8ff"/>',
-    cuboid:'<rect x="4" y="7" width="16" height="10" rx="1" fill="#93c5fd"/><path d="M4 7 L7 4 H21 L20 7 Z" fill="#dbe8ff"/>',
-    hexprism:'<polygon points="12,3 19,7 19,15 12,19 5,15 5,7" fill="none" stroke="#a78bfa" stroke-width="1.6"/><polygon points="12,3 19,7 12,11 5,7" fill="#c4b5fd"/>',
-    pyramid:'<polygon points="12,3 20,18 4,18" fill="#c4b5fd"/><polygon points="12,3 12,18 4,18" fill="#a78bfa"/>',
-    cylinder:'<ellipse cx="12" cy="6" rx="7" ry="2.6" fill="#7fd1c7"/><rect x="5" y="6" width="14" height="11" fill="#5fb8ad"/><ellipse cx="12" cy="17" rx="7" ry="2.6" fill="#4aa89c"/>',
-    cone:'<ellipse cx="12" cy="18" rx="7" ry="2.4" fill="#f9a8d4"/><polygon points="12,3 19,18 5,18" fill="#f472b6"/>',
-    sphere:'<circle cx="12" cy="12" r="8" fill="#93c5fd"/><ellipse cx="12" cy="12" rx="8" ry="3" fill="none" stroke="#dbe8ff" stroke-width="1"/>'
+    cube:'<path d="M12 3 L20 7 L20 15 L12 19 L4 15 L4 7 Z" fill="#0d9488"/><path d="M12 3 L20 7 L12 11 L4 7 Z" fill="#5eead4"/>',
+    cuboid:'<rect x="4" y="7" width="16" height="10" rx="1" fill="#0d9488"/><path d="M4 7 L7 4 H21 L20 7 Z" fill="#5eead4"/>',
+    hexprism:'<polygon points="12,3 19,7 19,15 12,19 5,15 5,7" fill="none" stroke="#0d9488" stroke-width="1.6"/><polygon points="12,3 19,7 12,11 5,7" fill="#5eead4"/>',
+    pyramid:'<polygon points="12,3 20,18 4,18" fill="#5eead4"/><polygon points="12,3 12,18 4,18" fill="#0d9488"/>',
+    cylinder:'<ellipse cx="12" cy="6" rx="7" ry="2.6" fill="#99f6e4"/><rect x="5" y="6" width="14" height="11" fill="#14b8a6"/><ellipse cx="12" cy="17" rx="7" ry="2.6" fill="#0f766e"/>',
+    cone:'<ellipse cx="12" cy="18" rx="7" ry="2.4" fill="#99f6e4"/><polygon points="12,3 19,18 5,18" fill="#14b8a6"/>',
+    sphere:'<circle cx="12" cy="12" r="8" fill="#0d9488"/><ellipse cx="12" cy="12" rx="8" ry="3" fill="none" stroke="#e6f7f5" stroke-width="1"/>'
   };
   return `<svg viewBox="0 0 24 22">${M[kind]}</svg>`;
 }
+
+/* UPDATED 2D Swatches */
 function swatchSVG2D(kind){
   const M = {
-    circle:'<circle cx="12" cy="12" r="8" fill="none" stroke="#7fb2ff" stroke-width="2"/>',
-    triangle:'<polygon points="12,4 20,19 4,19" fill="none" stroke="#f472b6" stroke-width="2"/>',
-    square:'<rect x="5" y="5" width="14" height="14" fill="none" stroke="#a78bfa" stroke-width="2"/>',
-    rectangle:'<rect x="3" y="7" width="18" height="10" fill="none" stroke="#f6b93b" stroke-width="2"/>',
-    pentagon:'<polygon points="12,3 20,9.5 17,19 7,19 4,9.5" fill="none" stroke="#7fd1c7" stroke-width="2"/>',
-    hexagon:'<polygon points="12,3 19,7.5 19,16.5 12,21 5,16.5 5,7.5" fill="none" stroke="#93c5fd" stroke-width="2"/>'
+    rectangle:'<rect x="3" y="7" width="18" height="10" fill="none" stroke="#0d9488" stroke-width="2"/>',
+    circle:'<circle cx="12" cy="12" r="8" fill="none" stroke="#0d9488" stroke-width="2"/>',
+    triangle:'<polygon points="12,4 20,19 4,19" fill="none" stroke="#0d9488" stroke-width="2"/>',
+    trapezoid:'<polygon points="6,16 18,16 14,8 10,8" fill="none" stroke="#0d9488" stroke-width="2" stroke-linejoin="round"/>',
+    rhombus:'<polygon points="12,4 20,12 12,20 4,12" fill="none" stroke="#0d9488" stroke-width="2" stroke-linejoin="round"/>'
   };
   return `<svg viewBox="0 0 24 24">${M[kind]}</svg>`;
 }
-/* icon for the "create custom 3D model" entry card */
+
 function customBuilderSwatchSVG(){
   return `<svg viewBox="0 0 24 24" fill="none">
-    <path d="M4 20 L4 4 L14 4" stroke="#7fb2ff" stroke-width="1.6" stroke-linecap="round"/>
-    <path d="M9 20 L20 20 L20 9" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round"/>
-    <path d="M4 4 L20 20" stroke="#f6b93b" stroke-width="1.6" stroke-dasharray="2 2"/>
+    <path d="M4 20 L4 4 L14 4" stroke="#0d9488" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M9 20 L20 20 L20 9" stroke="#14b8a6" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M4 4 L20 20" stroke="#0f766e" stroke-width="1.6" stroke-dasharray="2 2"/>
   </svg>`;
 }
 
@@ -1130,7 +1266,6 @@ function renderSidebar(){
     shapeListEl.appendChild(card);
   });
 
-  /* "สร้างโมเดลเรขาคณิต 3 มิติ" — always the last entry, 3D tab only */
   if(currentDim==='3d'){
     const buildCard = document.createElement('button');
     buildCard.className='shape-card custom-card'+(currentShapeId==='custom'?' active':'');
@@ -1146,29 +1281,26 @@ function renderSidebar(){
 }
 
 /* =====================================================================
-   2D RENDERING (SVG)
+   2D RENDERING (SVG) - UPDATED FOR 5 SHAPES
 ===================================================================== */
-function regularPolygonPoints(n, r, cx, cy){
-  const pts=[];
-  for(let i=0;i<n;i++){
-    const a = -Math.PI/2 + i*(Math.PI*2/n);
-    pts.push([cx+r*Math.cos(a), cy+r*Math.sin(a)]);
-  }
-  return pts.map(p=>p.join(',')).join(' ');
-}
 function render2DShape(id){
   const def = SHAPES_2D[id];
   let inner='';
   if(def.kind==='circle'){
-    inner = `<circle cx="110" cy="110" r="82" fill="rgba(127,178,255,.14)" stroke="#7fb2ff" stroke-width="4"/>`;
+    inner = `<circle cx="110" cy="110" r="82" fill="rgba(13, 148, 136, 0.1)" stroke="#0d9488" stroke-width="4"/>`;
   } else if(def.kind==='rect'){
-    inner = `<rect x="22" y="55" width="176" height="110" fill="rgba(246,185,59,.14)" stroke="#f6b93b" stroke-width="4"/>`;
-  } else {
-    inner = `<polygon points="${regularPolygonPoints(def.n,82,110,110)}" fill="rgba(167,139,250,.14)" stroke="#a78bfa" stroke-width="4" stroke-linejoin="round"/>`;
+    inner = `<rect x="22" y="55" width="176" height="110" fill="rgba(13, 148, 136, 0.1)" stroke="#0d9488" stroke-width="4"/>`;
+  } else if(def.kind==='triangle'){
+    inner = `<polygon points="110,28 192,192 28,192" fill="rgba(13, 148, 136, 0.1)" stroke="#0d9488" stroke-width="4" stroke-linejoin="round"/>`;
+  } else if(def.kind==='trapezoid'){
+    inner = `<polygon points="20,170 200,170 150,60 70,60" fill="rgba(13, 148, 136, 0.1)" stroke="#0d9488" stroke-width="4" stroke-linejoin="round"/>`;
+  } else if(def.kind==='rhombus'){
+    inner = `<polygon points="110,20 200,110 110,200 20,110" fill="rgba(13, 148, 136, 0.1)" stroke="#0d9488" stroke-width="4" stroke-linejoin="round"/>`;
   }
   svgFlipEl.innerHTML = `<svg viewBox="0 0 220 220">${inner}</svg>`;
   rotY2D = 0;
-  svgFlipEl.style.transform = 'rotateY(0deg)';
+  shape2DScale = 1;
+  apply2DScale();
 }
 
 /* =====================================================================
@@ -1181,9 +1313,9 @@ function selectShape(id){
   idleGroup.visible = false;
   closeSidePanel();
   resetNetView();
+  closeSidebar();
   document.querySelector('.toolbar').classList.add('show');
 
-  /* ---- custom 3D model builder ---- */
   if(id==='custom'){
     document.getElementById('toolBuildBtn').style.display='';
     svgStage.classList.add('hidden');
@@ -1195,12 +1327,14 @@ function selectShape(id){
     labelLayer.classList.remove('show');
     document.getElementById('toolLabelBtn').style.display='';
     document.getElementById('toolNetBtn').style.display='';
+    resetModelScale();
     if(customPresetId){
       rebuildCustomModel();
     } else {
       updateCustomToolbarState();
     }
     openPanel('build');
+    showGestureHint();
     return;
   }
   document.getElementById('toolBuildBtn').style.display='none';
@@ -1211,6 +1345,7 @@ function selectShape(id){
     mainGroup.clear();
     mainGroup.rotation.set(0,0,0);
     camera.position.z = BASE_CAMERA_Z;
+    resetModelScale();
     const def = SHAPES_3D[id];
     currentSolidGroup = buildSolidMesh(def);
     mainGroup.add(currentSolidGroup);
@@ -1221,6 +1356,7 @@ function selectShape(id){
     document.querySelector('.tool-btn[data-tool="net"]').disabled = false;
     document.querySelector('.tool-btn[data-tool="formula"]').disabled = false;
     document.querySelector('.tool-btn[data-tool="info"]').disabled = false;
+    showGestureHint();
   } else {
     canvas.style.display='none';
     svgStage.classList.remove('hidden');
@@ -1228,6 +1364,7 @@ function selectShape(id){
     labelLayer.classList.remove('show');
     document.getElementById('toolLabelBtn').style.display='none';
     document.getElementById('toolNetBtn').style.display='none';
+    showGestureHint();
   }
   if(activeTool) openPanel(activeTool);
 }
@@ -1276,7 +1413,6 @@ function openPanel(tool){
   activeTool = tool;
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('on', b.dataset.tool===tool));
 
-  /* ---- builder panel (choose preset + set X/Y/Z) ---- */
   if(tool==='build'){
     renderBuilderPanel();
     sidePanel.classList.add('open');
@@ -1376,7 +1512,7 @@ document.querySelectorAll('.tool-btn').forEach(btn=>{
 });
 
 /* =====================================================================
-   CUSTOM MODEL BUILDER PANEL (preset picker + X/Y/Z inputs)
+   CUSTOM MODEL BUILDER PANEL
 ===================================================================== */
 function renderBuilderPanel(){
   const presetPillsHtml = presetOrder.map(id=>
@@ -1412,7 +1548,6 @@ function renderBuilderPanel(){
       renderBuilderPanel();
       rebuildCustomModel();
       if(sidePanel.classList.contains('open') && activeTool==='build'){
-        // stay on the builder panel; nothing else to do
       }
     });
   });
@@ -1450,34 +1585,33 @@ function generateCustomModel(){
   rebuildCustomModel();
 }
 
-/* net illustrations (simplified schematic) */
 function netSVG(id){
   const nets = {
-    cube:`<svg viewBox="0 0 160 120"><g fill="none" stroke="#7fb2ff" stroke-width="2">
+    cube:`<svg viewBox="0 0 160 120"><g fill="none" stroke="#0d9488" stroke-width="2">
       <rect x="40" y="10" width="30" height="30"/><rect x="10" y="40" width="30" height="30"/>
       <rect x="40" y="40" width="30" height="30"/><rect x="70" y="40" width="30" height="30"/>
       <rect x="100" y="40" width="30" height="30"/><rect x="40" y="70" width="30" height="30"/></g></svg>`,
-    cuboid:`<svg viewBox="0 0 170 110"><g fill="none" stroke="#f6b93b" stroke-width="2">
+    cuboid:`<svg viewBox="0 0 170 110"><g fill="none" stroke="#0d9488" stroke-width="2">
       <rect x="45" y="8" width="40" height="26"/><rect x="10" y="34" width="30" height="42"/>
       <rect x="45" y="34" width="40" height="42"/><rect x="90" y="34" width="30" height="42"/>
       <rect x="125" y="34" width="30" height="42"/><rect x="45" y="76" width="40" height="26"/></g></svg>`,
-    hexprism:`<svg viewBox="0 0 200 110"><g fill="none" stroke="#a78bfa" stroke-width="2">
+    hexprism:`<svg viewBox="0 0 200 110"><g fill="none" stroke="#0d9488" stroke-width="2">
       <polygon points="30,15 45,8 60,15 60,32 45,39 30,32"/>
       <rect x="65" y="10" width="18" height="60"/><rect x="83" y="10" width="18" height="60"/>
       <rect x="101" y="10" width="18" height="60"/><rect x="119" y="10" width="18" height="60"/>
       <rect x="137" y="10" width="18" height="60"/><rect x="155" y="10" width="18" height="60"/>
       <polygon points="30,80 45,73 60,80 60,97 45,104 30,97"/></g></svg>`,
-    pyramid:`<svg viewBox="0 0 160 140"><g fill="none" stroke="#f472b6" stroke-width="2">
+    pyramid:`<svg viewBox="0 0 160 140"><g fill="none" stroke="#0d9488" stroke-width="2">
       <rect x="55" y="55" width="50" height="50"/>
       <polygon points="55,55 80,15 105,55"/><polygon points="105,55 145,80 105,105"/>
       <polygon points="105,105 80,130 55,105"/><polygon points="55,105 15,80 55,55"/></g></svg>`,
-    cylinder:`<svg viewBox="0 0 170 110"><g fill="none" stroke="#5fb8ad" stroke-width="2">
+    cylinder:`<svg viewBox="0 0 170 110"><g fill="none" stroke="#0d9488" stroke-width="2">
       <circle cx="30" cy="30" r="22"/><rect x="60" y="8" width="100" height="44"/><circle cx="30" cy="82" r="22"/></g></svg>`,
-    cone:`<svg viewBox="0 0 170 120"><g fill="none" stroke="#f472b6" stroke-width="2">
+    cone:`<svg viewBox="0 0 170 120"><g fill="none" stroke="#0d9488" stroke-width="2">
       <path d="M90 10 A70 70 0 0 1 145 100 L90 80 Z"/><circle cx="35" cy="90" r="22"/></g></svg>`,
-    sphere:`<svg viewBox="0 0 160 100"><g fill="none" stroke="#7fb2ff" stroke-width="2">
+    sphere:`<svg viewBox="0 0 160 100"><g fill="none" stroke="#0d9488" stroke-width="2">
       <ellipse cx="80" cy="50" rx="55" ry="35"/><path d="M25 50 Q80 10 135 50 Q80 90 25 50" />
-      <text x="80" y="55" fill="#93a3bd" font-size="10" text-anchor="middle" font-family="Prompt">คลี่ไม่ได้พอดี</text></g></svg>`
+      <text x="80" y="55" fill="#64748b" font-size="10" text-anchor="middle" font-family="Prompt">คลี่ไม่ได้พอดี</text></g></svg>`
   };
   return nets[id] || '';
 }
@@ -1485,15 +1619,31 @@ function netSVG(id){
 /* =====================================================================
    MOBILE SIDEBAR TOGGLE
 ===================================================================== */
+const sidebarEl = document.getElementById('sidebar');
+const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+
+function openSidebar(){
+  sidebarEl.classList.add('open');
+  sidebarBackdropEl.classList.add('show');
+}
+function closeSidebar(){
+  sidebarEl.classList.remove('open');
+  sidebarBackdropEl.classList.remove('show');
+}
+function toggleSidebar(){
+  sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
 function checkMobile(){
   const isMobile = window.innerWidth<=760;
   document.getElementById('sidebarToggle').style.display = isMobile?'flex':'none';
+  if(!isMobile) closeSidebar();
 }
 window.addEventListener('resize', checkMobile);
 checkMobile();
-document.getElementById('sidebarToggle').addEventListener('click', ()=>{
-  document.getElementById('sidebar').classList.toggle('open');
-});
+document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+sidebarBackdropEl.addEventListener('click', closeSidebar);
 
 /* =====================================================================
    INIT
