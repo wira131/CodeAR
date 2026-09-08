@@ -198,10 +198,7 @@
     box-shadow:0 6px 18px rgba(0,0,0,.1);
   }
 
-  /* ---------- ON-SCREEN AR / CAMERA STATUS MESSAGE ----------
-     Used instead of alert() for camera/AR failures — alert() can be silently
-     suppressed inside sandboxed preview iframes, which used to leave the
-     screen totally blank with no visible feedback at all. */
+  /* ---------- ON-SCREEN AR / CAMERA STATUS MESSAGE ---------- */
   .ar-status{
     position:absolute; inset:0; z-index:35;
     display:none; align-items:center; justify-content:center;
@@ -388,6 +385,13 @@
     .ar-btn{padding:8px 10px;gap:0;}
     .ar-btn .ar-label{display:none;}
     .ar-exit-float{padding:9px 14px;font-size:.76rem;}
+  }
+
+  /* ---------- AR BACKGROUND FIX ---------- */
+  body.ar-active-body,
+  body.ar-active-body .app,
+  body.ar-active-body .viewport {
+    background: transparent !important;
   }
 </style>
 </head>
@@ -1105,6 +1109,7 @@ let camHealthTimer = null;
 
 function setARActive(active){
   appEl.classList.toggle('ar-active', active);
+  document.body.classList.toggle('ar-active-body', active);
   arExitFloatBtn.style.display = active ? 'flex' : 'none';
 }
 
@@ -1222,6 +1227,8 @@ async function enterCameraMode(){
     camPreviewVideo.srcObject = camStream;
     camPreviewVideo.classList.add('show');
     arFallbackActive = true;
+
+    camPreviewVideo.play().catch(e => console.log("Video play error:", e));
 
     // Wait for an actual video frame before declaring success — a stream
     // object resolving is not the same as pixels actually arriving.
